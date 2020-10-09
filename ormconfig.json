@@ -1,0 +1,5 @@
+{
+    "type": "sqlite",
+    "database": "./src/database/database.sqlite3",
+    "entities": ["./src/database/models/index.ts"]
+}

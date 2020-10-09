@@ -1,0 +1,31 @@
+{
+    "name": "account-chain-indexer",
+    "version": "1.0.0",
+    "description": "Indexes account-based chains for RenVM",
+    "main": "./dist/index.js",
+    "repository": "https://github.com/renproject/account-chain-indexer",
+    "author": "renproject",
+    "license": "MIT",
+    "scripts": {
+        "build": "yarn tsc",
+        "start": "yarn build && node dist/index.js"
+    },
+    "dependencies": {
+        "@glif/filecoin-rpc-client": "^1.0.0-lerna.4",
+        "@types/node": "^14.11.5",
+        "apollo-server-express": "^2.18.2",
+        "class-validator": "^0.12.2",
+        "cors": "^2.8.5",
+        "express": "^4.17.1",
+        "graphql": "^15.3.0",
+        "pg": "^8.4.0",
+        "reflect-metadata": "^0.1.13",
+        "sqlite3": "^5.0.0",
+        "type-graphql": "^1.0.0",
+        "typeorm": "^0.2.28",
+        "typescript": "^4.0.3"
+    },
+    "devDependencies": {
+        "ts-node-dev": "^1.0.0-pre.63"
+    }
+}
