@@ -6,14 +6,22 @@ import {
     FilecoinNetwork,
     FilecoinTransaction,
 } from "../database/models/FilecoinTransaction";
-import { FILECOIN_TESTNET_TOKEN, FILECOIN_TESTNET_URL } from "../env";
+import {
+    FILECOIN_MAINNET_TOKEN,
+    FILECOIN_MAINNET_URL,
+    FILECOIN_TESTNET_TOKEN,
+    FILECOIN_TESTNET_URL,
+} from "../env";
 import { CYAN, RESET, SECONDS } from "../utils";
 import { IndexerClass } from "./base";
 
 type FilecoinClient = { request(method: string, ...args: any[]): Promise<any> };
 
 // TODO: Use database to track addresses.
-export const WATCHED_ADDRESS = "t1v2ftlxhedyoijv7uqgxfygiziaqz23lgkvks77i";
+export const WATCHED_ADDRESSES = {
+    [FilecoinNetwork.Mainnet]: "f15wjyn36z6x5ypq7f73yaolqbxyiiwkg5mmuyo2q",
+    [FilecoinNetwork.Testnet]: "t1v2ftlxhedyoijv7uqgxfygiziaqz23lgkvks77i",
+};
 
 export class FilecoinIndexer extends IndexerClass<
     FilecoinClient,
@@ -39,6 +47,12 @@ export class FilecoinIndexer extends IndexerClass<
                     token: FILECOIN_TESTNET_TOKEN,
                 };
                 break;
+            case FilecoinNetwork.Mainnet:
+                config = {
+                    apiAddress: FILECOIN_MAINNET_URL,
+                    token: FILECOIN_MAINNET_TOKEN,
+                };
+                break;
             default:
                 throw new Error(`Unsupported Filecoin network ${this.network}`);
         }
@@ -58,7 +72,16 @@ export class FilecoinIndexer extends IndexerClass<
 
         const latestHeight = await this.getLatestHeight();
 
-        if (latestHeight > chainState.synced) {
+        if (chainState.synced === 0) {
+            console.log(
+                `[${this.name.toLowerCase()}][${
+                    this.network
+                }] Starting indexer fom block ${CYAN}${latestHeight}${RESET}`
+            );
+
+            chainState.synced = latestHeight;
+            await chainState.save();
+        } else if (latestHeight > chainState.synced) {
             const synced = chainState.synced + 1 || latestHeight;
 
             console.log(
@@ -66,14 +89,14 @@ export class FilecoinIndexer extends IndexerClass<
                     this.network
                 }] Syncing from ${CYAN}${
                     chainState.synced
-                }${RESET} to ${CYAN}${latestHeight}${RESET}`,
+                }${RESET} to ${CYAN}${latestHeight}${RESET}`
             );
 
             const latestTXs = await client.request(
                 "StateListMessages",
                 {
                     Version: 0,
-                    To: WATCHED_ADDRESS,
+                    To: WATCHED_ADDRESSES[this.network],
                     From: null,
                     Nonce: 0,
                     Value: "0",
@@ -83,7 +106,7 @@ export class FilecoinIndexer extends IndexerClass<
                     Params: null,
                 },
                 [],
-                synced,
+                synced
             );
 
             if (latestTXs) {
@@ -91,17 +114,17 @@ export class FilecoinIndexer extends IndexerClass<
                     try {
                         const transactionDetails = await client.request(
                             "ChainGetMessage",
-                            cid,
+                            cid
                         );
 
                         if (this.network === FilecoinNetwork.Testnet) {
                             transactionDetails.To = transactionDetails.To.replace(
                                 /^f/,
-                                "t",
+                                "t"
                             );
                             transactionDetails.From = transactionDetails.From.replace(
                                 /^f/,
-                                "t",
+                                "t"
                             );
                         }
                         new FilecoinTransaction(chainState, asset, {
@@ -117,7 +140,7 @@ export class FilecoinIndexer extends IndexerClass<
                             `[${this.name.toLowerCase()}][${
                                 this.network
                             }] Saved transaction:`,
-                            transactionDetails,
+                            transactionDetails
                         );
                     } catch (error) {
                         console.error(error);
@@ -131,7 +154,7 @@ export class FilecoinIndexer extends IndexerClass<
             console.log(
                 `[${this.name.toLowerCase()}][${
                     this.network
-                }] Already synced up to ${CYAN}${latestHeight}${RESET}`,
+                }] Already synced up to ${CYAN}${latestHeight}${RESET}`
             );
         }
     }

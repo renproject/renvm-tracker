@@ -11,7 +11,10 @@ export const sleep = async (ms: number): Promise<void> =>
     // tslint:disable-next-line: no-string-based-set-timeout
     new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-export const CRASH = () => {
+export const CRASH = (error?: any) => {
+    if (error) {
+        console.error(error);
+    }
     process.exit(1);
 };
 

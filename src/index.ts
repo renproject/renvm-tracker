@@ -14,5 +14,5 @@ export const main = async (..._args: string[]) => {
 };
 
 main(...process.argv)
-    .then(console.log)
+    .then((ret) => ((ret as any) ? console.log(ret) : null))
     .catch(console.error);

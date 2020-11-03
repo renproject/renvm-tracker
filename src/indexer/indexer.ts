@@ -14,9 +14,13 @@ export const runIndexer = (): Indexers => {
     const filecoinTestnetIndexer = new FilecoinIndexer(FilecoinNetwork.Testnet);
     filecoinTestnetIndexer.start().catch(CRASH);
 
+    const filecoinMainnetIndexer = new FilecoinIndexer(FilecoinNetwork.Mainnet);
+    filecoinMainnetIndexer.start().catch(CRASH);
+
     return {
         [filecoinTestnetIndexer.name]: {
             [filecoinTestnetIndexer.network]: filecoinTestnetIndexer,
+            [filecoinMainnetIndexer.network]: filecoinMainnetIndexer,
         },
     };
 };
