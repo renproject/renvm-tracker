@@ -19,8 +19,11 @@ type FilecoinClient = { request(method: string, ...args: any[]): Promise<any> };
 
 // TODO: Use database to track addresses.
 export const WATCHED_ADDRESSES = {
-    [FilecoinNetwork.Mainnet]: "f15wjyn36z6x5ypq7f73yaolqbxyiiwkg5mmuyo2q",
-    [FilecoinNetwork.Testnet]: "t1v2ftlxhedyoijv7uqgxfygiziaqz23lgkvks77i",
+    [FilecoinNetwork.Mainnet]: ["f15wjyn36z6x5ypq7f73yaolqbxyiiwkg5mmuyo2q"],
+    [FilecoinNetwork.Testnet]: [
+        "t1v2ftlxhedyoijv7uqgxfygiziaqz23lgkvks77i",
+        "t1cfxqaivmpcv2rxdd2ew75u5duyabpkri2f6lddy",
+    ],
 };
 
 export class FilecoinIndexer extends IndexerClass<
@@ -92,58 +95,60 @@ export class FilecoinIndexer extends IndexerClass<
                 }${RESET} to ${CYAN}${latestHeight}${RESET}`
             );
 
-            const latestTXs = await client.request(
-                "StateListMessages",
-                {
-                    Version: 0,
-                    To: WATCHED_ADDRESSES[this.network],
-                    From: null,
-                    Nonce: 0,
-                    Value: "0",
-                    GasPrice: "0",
-                    GasLimit: 0,
-                    Method: 0,
-                    Params: null,
-                },
-                [],
-                synced
-            );
+            for (const watchesAddress of WATCHED_ADDRESSES[this.network]) {
+                const latestTXs = await client.request(
+                    "StateListMessages",
+                    {
+                        Version: 0,
+                        To: watchesAddress,
+                        From: null,
+                        Nonce: 0,
+                        Value: "0",
+                        GasPrice: "0",
+                        GasLimit: 0,
+                        Method: 0,
+                        Params: null,
+                    },
+                    [],
+                    synced
+                );
 
-            if (latestTXs) {
-                for (const cid of latestTXs) {
-                    try {
-                        const transactionDetails = await client.request(
-                            "ChainGetMessage",
-                            cid
-                        );
+                if (latestTXs) {
+                    for (const cid of latestTXs) {
+                        try {
+                            const transactionDetails = await client.request(
+                                "ChainGetMessage",
+                                cid
+                            );
 
-                        if (this.network === FilecoinNetwork.Testnet) {
-                            transactionDetails.To = transactionDetails.To.replace(
-                                /^f/,
-                                "t"
+                            if (this.network === FilecoinNetwork.Testnet) {
+                                transactionDetails.To = transactionDetails.To.replace(
+                                    /^f/,
+                                    "t"
+                                );
+                                transactionDetails.From = transactionDetails.From.replace(
+                                    /^f/,
+                                    "t"
+                                );
+                            }
+                            new FilecoinTransaction(chainState, asset, {
+                                cid: cid["/"],
+                                to: transactionDetails.To,
+                                amount: transactionDetails.Value,
+                                params: transactionDetails.Params,
+                                blocknumber: latestHeight,
+                                nonce: transactionDetails.Nonce,
+                            }).save();
+
+                            console.log(
+                                `[${this.name.toLowerCase()}][${
+                                    this.network
+                                }] Saved transaction:`,
+                                transactionDetails
                             );
-                            transactionDetails.From = transactionDetails.From.replace(
-                                /^f/,
-                                "t"
-                            );
+                        } catch (error) {
+                            console.error(error);
                         }
-                        new FilecoinTransaction(chainState, asset, {
-                            cid: cid["/"],
-                            to: transactionDetails.To,
-                            amount: transactionDetails.Value,
-                            params: transactionDetails.Params,
-                            blocknumber: latestHeight,
-                            nonce: transactionDetails.Nonce,
-                        }).save();
-
-                        console.log(
-                            `[${this.name.toLowerCase()}][${
-                                this.network
-                            }] Saved transaction:`,
-                            transactionDetails
-                        );
-                    } catch (error) {
-                        console.error(error);
                     }
                 }
             }
