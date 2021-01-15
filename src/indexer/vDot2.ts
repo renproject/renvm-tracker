@@ -105,7 +105,9 @@ export class VDot2Indexer extends IndexerClass<
                     renvmState.network
                 }] Syncing from ${CYAN}${
                     renvmState.syncedBlock
-                }${RESET} to ${CYAN}${toBlock}${RESET}`
+                }${RESET} to ${CYAN}${toBlock}${RESET}${
+                    latestHeight === toBlock ? " (latest)" : ""
+                }`
             );
 
             let intermediateTimeBlocks = OrderedMap<number, PartialTimeBlock>();
@@ -127,7 +129,7 @@ export class VDot2Indexer extends IndexerClass<
                 );
 
                 for (const block of latestBlocks) {
-                    process.stdout.write(`${block.height}\r`);
+                    // process.stdout.write(`${block.height}\r`);
                     for (let transaction of block.transactions) {
                         const txHash =
                             typeof transaction === "string"
@@ -310,10 +312,6 @@ export class VDot2Indexer extends IndexerClass<
                     }
                 }
             }
-
-            console.log(
-                JSON.stringify(intermediateTimeBlocks.toJS(), null, "    ")
-            );
 
             renvmState.syncedBlock = latestBlock;
             await updateTimeBlocks(
