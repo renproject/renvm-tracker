@@ -1,29 +1,43 @@
 import { Connection, createConnection, getConnection } from "typeorm";
 
 import { typeOrmConfig } from "./connection";
-import { Asset, Chain, FilecoinNetwork } from "./models";
+import { RenNetwork, RenVMInstance, RenVMInstances } from "./models";
 
 export const initializeDatabase = async () => {
     // Chains
 
-    const filecoinTestnet = new Chain("Filecoin", FilecoinNetwork.Testnet);
-    await filecoinTestnet.save();
+    const testnet = new RenVMInstance(
+        RenVMInstances.Testnet,
+        RenNetwork.Testnet
+    );
+    testnet.syncedBlock = 1;
+    await testnet.save();
 
-    const filecoinMainnet = new Chain("Filecoin", FilecoinNetwork.Mainnet);
-    await filecoinMainnet.save();
+    const testnetVDot3 = new RenVMInstance(
+        RenVMInstances.TestnetVDot3,
+        RenNetwork.Testnet
+    );
+    testnetVDot3.syncedBlock = 1;
+    await testnetVDot3.save();
 
-    // Assets
+    const mainnet = new RenVMInstance(
+        RenVMInstances.Mainnet,
+        RenNetwork.Mainnet
+    );
+    mainnet.syncedBlock = 1;
+    await mainnet.save();
 
-    const tFil = new Asset(filecoinTestnet);
-    tFil.name = "tFIL";
-    await tFil.save();
-
-    const fil = new Asset(filecoinMainnet);
-    fil.name = "FIL";
-    await fil.save();
+    const mainnetVDot3 = new RenVMInstance(
+        RenVMInstances.MainnetVDot3,
+        RenNetwork.Mainnet
+    );
+    mainnetVDot3.syncedBlock = 1;
+    await mainnetVDot3.save();
 };
 
-export const runDatabase = async () => {
+export const runDatabase = async (): Promise<Connection> => {
+    console.log(`Connecting to database...`);
+
     let connection: Connection;
     try {
         connection = await createConnection(typeOrmConfig);
@@ -41,4 +55,6 @@ export const runDatabase = async () => {
     await connection.synchronize();
 
     // await initializeDatabase();
+
+    return connection;
 };

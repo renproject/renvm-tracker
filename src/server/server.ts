@@ -9,15 +9,7 @@ import { PORT } from "../env";
 import { Indexers } from "../indexer/indexer";
 import { Resolvers } from "./schema/Resolvers";
 
-// TODO: Pass directly to Resolvers.
-let indexers: Indexers | null;
-export const getIndexers = () => {
-    return indexers;
-};
-
 export const runServer = async (_indexers: Indexers) => {
-    indexers = _indexers;
-
     const schema = await buildSchema({
         resolvers: [Resolvers],
     });

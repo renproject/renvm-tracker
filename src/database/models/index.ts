@@ -1,3 +1,2 @@
-export * from "./FilecoinTransaction";
-export * from "./Chain";
-export * from "./Asset";
+export * from "./TimeBlock";
+export * from "./RenVMInstance";

@@ -1,20 +1,21 @@
-import { Chain } from "../database/models/Chain";
+import { Connection } from "typeorm";
+import {
+    RenVMInstance,
+    RenVMInstances,
+} from "../database/models/RenVMInstance";
 import { SECONDS, sleep } from "../utils";
 
-export interface IndexerInterface {
-    getLatestHeight(): Promise<number>;
-}
-
-export class IndexerClass<Client, Network extends string = string>
-    implements IndexerInterface {
+export class IndexerClass<Client> {
     client: Client | null;
-    network: Network;
+    instance: RenVMInstances;
+    connection: Connection;
 
     name: string = "";
 
-    constructor(network: Network) {
+    constructor(instance: RenVMInstances, connection: Connection) {
         this.client = null;
-        this.network = network;
+        this.instance = instance;
+        this.connection = connection;
     }
 
     async connect() {
@@ -25,9 +26,8 @@ export class IndexerClass<Client, Network extends string = string>
     }
 
     async readDatabase() {
-        return await Chain.findOneOrFail({
-            name: this.name,
-            network: this.network,
+        return await RenVMInstance.findOneOrFail({
+            name: this.instance,
         });
     }
 
@@ -35,8 +35,6 @@ export class IndexerClass<Client, Network extends string = string>
         const client = await this.connect();
 
         while (true) {
-            // Filecoin Testnet ////////////////////////////////////////////////////
-
             try {
                 await this.loop(client);
             } catch (error) {
@@ -48,8 +46,4 @@ export class IndexerClass<Client, Network extends string = string>
     }
 
     async loop(client: Client) {}
-
-    async getLatestHeight(): Promise<number> {
-        throw new Error("not implemented");
-    }
 }
