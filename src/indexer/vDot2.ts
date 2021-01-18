@@ -154,16 +154,16 @@ export class VDot2Indexer extends IndexerClass<
 
                     const blockTimestamp = getTimestamp(block.timestamp);
 
-                    if (
-                        !(await this.networkSync.upTo(
-                            this.name,
-                            blockTimestamp
-                        ))
-                    ) {
+                    const [
+                        networkSynced,
+                        networkSyncProgress,
+                    ] = await this.networkSync.upTo(this.name, blockTimestamp);
+
+                    if (!networkSynced) {
                         console.log(
                             `[${this.name.toLowerCase()}][${
                                 renvmState.network
-                            }] Waiting for other network to get to ${blockTimestamp}.`
+                            }] Waiting for other network to get to ${blockTimestamp} - currently at ${networkSyncProgress}.`
                         );
                         break;
                     }

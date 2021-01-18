@@ -18,7 +18,7 @@ export class NetworkSync {
     public upTo = async (
         network: "v0.2" | "v0.3",
         timestamp: number
-    ): Promise<boolean> => {
+    ): Promise<[boolean, number]> => {
         const otherNetwork = network === "v0.2" ? "v0.3" : "v0.2";
 
         await this.mutex.acquire();
@@ -34,7 +34,7 @@ export class NetworkSync {
         if (timestamp >= this.timestamp && !this[network]) {
             this[network] = true;
             this.mutex.release();
-            return false;
+            return [false, this.timestamp];
         }
 
         if (timestamp > this.timestamp && this[network] && this[otherNetwork]) {
@@ -46,13 +46,14 @@ export class NetworkSync {
             this[network] = true;
 
             this.mutex.release();
-            return true;
+            return [true, this.timestamp];
         }
 
         this.mutex.release();
 
-        return (
-            this.timestamp >= timestamp && this[otherNetwork] && this[network]
-        );
+        return [
+            this.timestamp >= timestamp && this[otherNetwork] && this[network],
+            this.timestamp,
+        ];
     };
 }
