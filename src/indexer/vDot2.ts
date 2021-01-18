@@ -36,7 +36,7 @@ import { OrderedMap } from "immutable";
 import { Connection } from "typeorm";
 import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
 import { NetworkSync } from "./networkSync";
-import { blue, cyan, green } from "chalk";
+import { blue, cyan, green, yellow } from "chalk";
 
 export interface CommonBlock<
     T =
@@ -55,7 +55,7 @@ export class VDot2Indexer extends IndexerClass<
     name: "v0.2" | "v0.3" = "v0.2";
 
     BATCH_SIZE = 40;
-    BATCH_COUNT = 1;
+    BATCH_COUNT = 100;
 
     latestTimestamp = 0;
     networkSync: NetworkSync;
@@ -135,9 +135,14 @@ export class VDot2Indexer extends IndexerClass<
 
             let intermediateTimeBlocks = OrderedMap<number, PartialTimeBlock>();
 
+            let setBreak = false;
+
             let latestProcessedHeight = syncedHeight;
             for (let i = syncedHeight; i <= toBlock; i += this.BATCH_SIZE) {
-                // process.stdout.write(`${i}\r`);
+                if (setBreak) {
+                    break;
+                }
+                process.stdout.write(`${i}\r`);
                 const latestBlocks = await this.getNextBatchOfBlocks(
                     client,
                     i,
@@ -147,10 +152,11 @@ export class VDot2Indexer extends IndexerClass<
                 );
 
                 for (const block of latestBlocks) {
-                    latestProcessedHeight = Math.max(
-                        block.height,
-                        latestProcessedHeight
-                    );
+                    // console.log(
+                    //     `[${this.name.toLowerCase()}][${
+                    //         renvmState.network
+                    //     }] Processing block #${blue(block.height)}`
+                    // );
 
                     const blockTimestamp = getTimestamp(block.timestamp);
 
@@ -160,13 +166,31 @@ export class VDot2Indexer extends IndexerClass<
                     ] = await this.networkSync.upTo(this.name, blockTimestamp);
 
                     if (!networkSynced) {
+                        const difference =
+                            networkSyncProgress === 0
+                                ? "?"
+                                : moment
+                                      .duration(
+                                          moment(blockTimestamp * 1000).diff(
+                                              networkSyncProgress * 1000
+                                          )
+                                      )
+                                      .humanize();
                         console.log(
                             `[${this.name.toLowerCase()}][${
                                 renvmState.network
-                            }] Waiting for other network to get to ${blockTimestamp} - currently at ${networkSyncProgress}.`
+                            }] Waiting for other network to get to ${blockTimestamp} (${yellow(
+                                difference
+                            )} behind)`
                         );
+                        setBreak = true;
                         break;
                     }
+
+                    latestProcessedHeight = Math.max(
+                        block.height,
+                        latestProcessedHeight
+                    );
 
                     // process.stdout.write(`${block.height}\r`);
                     for (let transaction of block.transactions) {

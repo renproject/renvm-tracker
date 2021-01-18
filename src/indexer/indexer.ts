@@ -20,15 +20,15 @@ export const runIndexer = (connection: Connection): Indexers => {
     const testnetSync = new NetworkSync();
     const mainnetSync = new NetworkSync(true);
 
-    // readFile("src/indexer/final.json", "utf-8", (err, data) => {
-    //     if (err) {
-    //         console.error(err);
-    //         return;
-    //     }
+    readFile("src/indexer/final.json", "utf-8", (err, data) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
 
-    //     const json = JSON.parse(data);
-    //     processEvents(json);
-    // });
+        const json = JSON.parse(data);
+        processEvents(json);
+    });
 
     const testnetVDot2Indexer = new VDot2Indexer(
         RenVMInstances.Testnet,
