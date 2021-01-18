@@ -36,7 +36,7 @@ import { OrderedMap } from "immutable";
 import { Connection } from "typeorm";
 import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
 import { NetworkSync } from "./networkSync";
-import { cyan, green } from "chalk";
+import { blue, cyan, green } from "chalk";
 
 export interface CommonBlock<
     T =
@@ -352,6 +352,15 @@ export class VDot2Indexer extends IndexerClass<
                 }
             }
 
+            if (latestProcessedHeight > renvmState.syncedBlock) {
+                console.error(
+                    `[${this.name.toLowerCase()}][${
+                        renvmState.network
+                    }] Processed ${blue(
+                        latestProcessedHeight - renvmState.syncedBlock
+                    )} blocks.`
+                );
+            }
             renvmState.syncedBlock = latestProcessedHeight;
             await updateTimeBlocks(
                 intermediateTimeBlocks,
