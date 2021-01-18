@@ -38,14 +38,15 @@ import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
 import { NetworkSync } from "./networkSync";
 import { cyan, green } from "chalk";
 
-export interface CommonBlock {
-    height: number;
-    timestamp: Moment;
-    transactions: Array<
+export interface CommonBlock<
+    T =
         | ResponseQueryMintTx["tx"]
         | ResponseQueryBurnTx["tx"]
         | ResponseQueryTx["tx"]
-    >;
+> {
+    height: number;
+    timestamp: Moment;
+    transactions: Array<T>;
 }
 
 export class VDot2Indexer extends IndexerClass<

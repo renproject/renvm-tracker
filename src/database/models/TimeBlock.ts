@@ -108,7 +108,7 @@ export const getTimestamp = (time: Moment | number): number => {
     return unix - (unix % TIME_BLOCK_LENGTH);
 };
 
-const getTimeBlock = async (timestamp: Moment | number) => {
+export const getTimeBlock = async (timestamp: Moment | number) => {
     const unixTimestamp =
         typeof timestamp === "number" ? timestamp : timestamp.unix();
 

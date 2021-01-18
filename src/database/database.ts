@@ -10,28 +10,28 @@ export const initializeDatabase = async () => {
         RenVMInstances.Testnet,
         RenNetwork.Testnet
     );
-    testnet.syncedBlock = 1;
+    testnet.syncedBlock = 2484310;
     await testnet.save();
 
     const testnetVDot3 = new RenVMInstance(
         RenVMInstances.TestnetVDot3,
         RenNetwork.Testnet
     );
-    testnetVDot3.syncedBlock = 1;
+    testnetVDot3.syncedBlock = 714167;
     await testnetVDot3.save();
 
     const mainnet = new RenVMInstance(
         RenVMInstances.Mainnet,
         RenNetwork.Mainnet
     );
-    mainnet.syncedBlock = 1;
+    mainnet.syncedBlock = 35897837;
     await mainnet.save();
 
     const mainnetVDot3 = new RenVMInstance(
         RenVMInstances.MainnetVDot3,
         RenNetwork.Mainnet
     );
-    mainnetVDot3.syncedBlock = 1;
+    mainnetVDot3.syncedBlock = 665738;
     await mainnetVDot3.save();
 };
 
@@ -55,6 +55,8 @@ export const runDatabase = async (): Promise<Connection> => {
     await connection.synchronize();
 
     // await initializeDatabase();
+
+    console.log("Connected.");
 
     return connection;
 };

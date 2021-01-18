@@ -131,6 +131,8 @@ export const getTokenPrice = async (
                 url = `${coinGeckoURL}/coins/${coinGeckoID}?${coinGeckoParams}`;
             }
 
+            console.log(`Getting price for ${token} (${date})`);
+
             const response = await Axios.get<{
                 market_data: { current_price: { [currency: string]: number } };
             }>(url, {
