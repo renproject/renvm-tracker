@@ -28,7 +28,8 @@ export interface TokenPrice {
 export const addToTokenAmount = (
     existing: TokenAmount,
     amount: TokenAmount,
-    price?: TokenPrice
+    price?: TokenPrice,
+    refreshPrice?: boolean
 ): TokenAmount => {
     if (existing.amount.gt(0) && existing.amountInUsd.isZero()) {
         existing = applyPrice(existing.amount, price);
@@ -36,9 +37,24 @@ export const addToTokenAmount = (
 
     return {
         amount: existing.amount.plus(amount.amount),
-        amountInEth: existing.amountInEth.plus(amount.amountInEth),
-        amountInBtc: existing.amountInBtc.plus(amount.amountInBtc),
-        amountInUsd: existing.amountInUsd.plus(amount.amountInUsd),
+        amountInEth:
+            refreshPrice && price
+                ? existing.amount
+                      .times(price.priceInEth)
+                      .plus(amount.amountInEth)
+                : existing.amountInEth.plus(amount.amountInEth),
+        amountInBtc:
+            refreshPrice && price
+                ? existing.amount
+                      .times(price.priceInBtc)
+                      .plus(amount.amountInBtc)
+                : existing.amountInBtc.plus(amount.amountInBtc),
+        amountInUsd:
+            refreshPrice && price
+                ? existing.amount
+                      .times(price.priceInUsd)
+                      .plus(amount.amountInUsd)
+                : existing.amountInUsd.plus(amount.amountInUsd),
     };
 };
 

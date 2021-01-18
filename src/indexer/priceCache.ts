@@ -17,15 +17,15 @@ export const applyPrice = (
         amount,
         amountInEth:
             price && shifted
-                ? shifted.times(price.priceInEth)
+                ? shifted.times(price.priceInEth).decimalPlaces(8)
                 : new BigNumber(0),
         amountInBtc:
             price && shifted
-                ? shifted.times(price.priceInBtc)
+                ? shifted.times(price.priceInBtc).decimalPlaces(8)
                 : new BigNumber(0),
         amountInUsd:
             price && shifted
-                ? shifted.times(price.priceInUsd)
+                ? shifted.times(price.priceInUsd).decimalPlaces(2)
                 : new BigNumber(0),
     };
 };

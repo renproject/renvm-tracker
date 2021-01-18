@@ -179,7 +179,8 @@ export const addLocked = <T extends PartialTimeBlock>(
         addToTokenAmount(
             partialTimeBlock[lockedKey].get(selector, TokenAmountZero),
             amount,
-            tokenPrice
+            tokenPrice,
+            true
         )
     );
 
