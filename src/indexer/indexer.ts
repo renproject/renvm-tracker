@@ -27,41 +27,41 @@ export const runIndexer = (connection: Connection): Indexers => {
         }
 
         const json = JSON.parse(data);
-        processEvents(json);
+        processEvents(json).then(() => {
+            const testnetVDot2Indexer = new VDot2Indexer(
+                RenVMInstances.Testnet,
+                connection,
+                testnetSync
+            );
+            testnetVDot2Indexer.start().catch(CRASH);
+
+            const mainnetVDot2Indexer = new VDot2Indexer(
+                RenVMInstances.Mainnet,
+                connection,
+                mainnetSync
+            );
+            mainnetVDot2Indexer.start().catch(CRASH);
+
+            const testnetVDot3Indexer = new VDot3Indexer(
+                RenVMInstances.TestnetVDot3,
+                connection,
+                testnetSync
+            );
+            testnetVDot3Indexer.start().catch(CRASH);
+
+            const mainnetVDot3Indexer = new VDot3Indexer(
+                RenVMInstances.MainnetVDot3,
+                connection,
+                mainnetSync
+            );
+            mainnetVDot3Indexer.start().catch(CRASH);
+        });
     });
 
-    const testnetVDot2Indexer = new VDot2Indexer(
-        RenVMInstances.Testnet,
-        connection,
-        testnetSync
-    );
-    testnetVDot2Indexer.start().catch(CRASH);
-
-    const mainnetVDot2Indexer = new VDot2Indexer(
-        RenVMInstances.Mainnet,
-        connection,
-        mainnetSync
-    );
-    mainnetVDot2Indexer.start().catch(CRASH);
-
-    const testnetVDot3Indexer = new VDot3Indexer(
-        RenVMInstances.TestnetVDot3,
-        connection,
-        testnetSync
-    );
-    testnetVDot3Indexer.start().catch(CRASH);
-
-    const mainnetVDot3Indexer = new VDot3Indexer(
-        RenVMInstances.MainnetVDot3,
-        connection,
-        mainnetSync
-    );
-    mainnetVDot3Indexer.start().catch(CRASH);
-
     return {
-        [testnetVDot2Indexer.instance]: testnetVDot2Indexer,
-        [mainnetVDot2Indexer.instance]: mainnetVDot2Indexer,
-        [testnetVDot3Indexer.instance]: testnetVDot3Indexer,
-        [mainnetVDot3Indexer.instance]: mainnetVDot3Indexer,
+        // [testnetVDot2Indexer.instance]: testnetVDot2Indexer,
+        // [mainnetVDot2Indexer.instance]: mainnetVDot2Indexer,
+        // [testnetVDot3Indexer.instance]: testnetVDot3Indexer,
+        // [mainnetVDot3Indexer.instance]: mainnetVDot3Indexer,
     };
 };
