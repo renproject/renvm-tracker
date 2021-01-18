@@ -2,6 +2,7 @@ import { Connection } from "typeorm";
 import { RenVMInstances } from "../database/models";
 import { CRASH } from "../utils";
 import { IndexerClass } from "./base";
+import { NetworkSync } from "./networkSync";
 import { VDot2Indexer } from "./vDot2";
 import { VDot3Indexer } from "./vDot3";
 
@@ -13,27 +14,34 @@ export interface Indexers {
  * runIndexer starts a loop for each chain's network.
  */
 export const runIndexer = (connection: Connection): Indexers => {
+    const testnetSync = new NetworkSync();
+    const mainnetSync = new NetworkSync(true);
+
     const testnetVDot2Indexer = new VDot2Indexer(
         RenVMInstances.Testnet,
-        connection
+        connection,
+        testnetSync
     );
     testnetVDot2Indexer.start().catch(CRASH);
 
     const mainnetVDot2Indexer = new VDot2Indexer(
         RenVMInstances.Mainnet,
-        connection
+        connection,
+        mainnetSync
     );
     mainnetVDot2Indexer.start().catch(CRASH);
 
     const testnetVDot3Indexer = new VDot3Indexer(
         RenVMInstances.TestnetVDot3,
-        connection
+        connection,
+        testnetSync
     );
     testnetVDot3Indexer.start().catch(CRASH);
 
     const mainnetVDot3Indexer = new VDot3Indexer(
         RenVMInstances.MainnetVDot3,
-        connection
+        connection,
+        mainnetSync
     );
     mainnetVDot3Indexer.start().catch(CRASH);
 

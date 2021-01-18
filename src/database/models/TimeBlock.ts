@@ -22,9 +22,11 @@ import {
     VolumeMap,
     VolumeMapTransformer,
     TokenAmount,
+    BigNumberTransformer,
 } from "./amounts";
 import { List, OrderedMap } from "immutable";
 import { RenVMInstance } from "./RenVMInstance";
+import BigNumber from "bignumber.js";
 
 export enum RenNetwork {
     Mainnet = "mainnet",
@@ -101,7 +103,7 @@ export class TimeBlock extends BaseEntity implements PartialTimeBlock {
 
 const mutex = new Mutex();
 
-export const getTimestamp = (time: Moment | number) => {
+export const getTimestamp = (time: Moment | number): number => {
     const unix = typeof time === "number" ? time : time.unix();
     return unix - (unix % TIME_BLOCK_LENGTH);
 };
@@ -249,7 +251,10 @@ const updateTimeBlock = (
     const lockedKey =
         network === "mainnet" ? "mainnetLockedJSON" : "testnetLockedJSON";
 
-    timeBlock.pricesJSON = partialTimeBlock.pricesJSON;
+    timeBlock.pricesJSON = {
+        ...timeBlock.pricesJSON,
+        ...partialTimeBlock.pricesJSON,
+    };
 
     for (const [selector, amount] of partialTimeBlock[volumeKey]) {
         const asset = selector.split("/")[0];

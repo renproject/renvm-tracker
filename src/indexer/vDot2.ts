@@ -1,6 +1,7 @@
 import { RenVMProvider } from "@renproject/rpc/build/main/v1/renVMProvider";
 import { RenVMProvider as RenVMProviderVDot3 } from "@renproject/rpc/build/main/v2/renVMProvider";
 import {
+    RenVMBlock,
     ResponseQueryBlocks,
     ResponseQueryBurnTx,
     ResponseQueryMintTx,
@@ -27,7 +28,6 @@ import {
     subtractLocked,
     updateTimeBlocks,
 } from "../database/models";
-import { CYAN, RESET } from "../utils";
 import { IndexerClass } from "./base";
 import { applyPrice, getTokenPrice } from "./priceCache";
 import moment, { Moment } from "moment";
@@ -35,17 +35,37 @@ import BigNumber from "bignumber.js";
 import { OrderedMap } from "immutable";
 import { Connection } from "typeorm";
 import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
+import { NetworkSync } from "./networkSync";
+import { cyan, green } from "chalk";
+
+export interface CommonBlock {
+    height: number;
+    timestamp: Moment;
+    transactions: Array<
+        | ResponseQueryMintTx["tx"]
+        | ResponseQueryBurnTx["tx"]
+        | ResponseQueryTx["tx"]
+    >;
+}
 
 export class VDot2Indexer extends IndexerClass<
     RenVMProvider | RenVMProviderVDot3
 > {
-    name = "v0.2";
+    name: "v0.2" | "v0.3" = "v0.2";
 
     BATCH_SIZE = 40;
-    BATCH_COUNT = 100;
+    BATCH_COUNT = 1;
 
-    constructor(instance: RenVMInstances, connection: Connection) {
+    latestTimestamp = 0;
+    networkSync: NetworkSync;
+
+    constructor(
+        instance: RenVMInstances,
+        connection: Connection,
+        networkSync: NetworkSync
+    ) {
         super(instance, connection);
+        this.networkSync = networkSync;
     }
 
     async connect() {
@@ -67,10 +87,12 @@ export class VDot2Indexer extends IndexerClass<
         // Testnet v0.2 blocks at: 24040, 35506, 36399, 37415
         let syncedHeight: number = renvmState.syncedBlock;
 
-        const latestHeight = await this.latestBlock(client);
+        const currentTimestamp = getTimestamp(moment());
+
+        const latestBlock = await this.latestBlock(client);
 
         // Detect migration - latest block height has been reset.
-        if (syncedHeight > 1 && latestHeight < syncedHeight - 1000) {
+        if (syncedHeight > 1 && latestBlock.height < syncedHeight - 1000) {
             console.log(
                 `[${this.name.toLowerCase()}][${
                     renvmState.network
@@ -85,34 +107,34 @@ export class VDot2Indexer extends IndexerClass<
             console.log(
                 `[${this.name.toLowerCase()}][${
                     renvmState.network
-                }] Starting indexer fom latest block.`
+                }] Starting indexer fom latest block - ${
+                    latestBlock.height
+                } (${latestBlock.timestamp.unix()})`
             );
 
             // Start from latest block.
-            renvmState.syncedBlock = latestHeight;
+            renvmState.syncedBlock = latestBlock.height;
             syncedHeight = renvmState.syncedBlock;
         }
 
-        if (!syncedHeight || latestHeight > syncedHeight) {
+        if (!syncedHeight || latestBlock.height > syncedHeight) {
             // const toBlock = syncedHeight
             const toBlock = Math.min(
-                latestHeight,
+                latestBlock.height,
                 syncedHeight + this.BATCH_SIZE * this.BATCH_COUNT - 1
             );
 
             console.log(
                 `[${this.name.toLowerCase()}][${
                     renvmState.network
-                }] Syncing from ${CYAN}${
-                    renvmState.syncedBlock
-                }${RESET} to ${CYAN}${toBlock}${RESET}${
-                    latestHeight === toBlock ? " (latest)" : ""
-                }`
+                }] Syncing from #${cyan(renvmState.syncedBlock)} to #${cyan(
+                    toBlock
+                )}${latestBlock.height === toBlock ? ` (latest)` : ""}`
             );
 
             let intermediateTimeBlocks = OrderedMap<number, PartialTimeBlock>();
 
-            let latestBlock = toBlock || 0;
+            let latestProcessedHeight = syncedHeight;
             for (let i = syncedHeight; i <= toBlock; i += this.BATCH_SIZE) {
                 // process.stdout.write(`${i}\r`);
                 const latestBlocks = await this.getNextBatchOfBlocks(
@@ -123,12 +145,28 @@ export class VDot2Indexer extends IndexerClass<
                         : this.BATCH_SIZE
                 );
 
-                latestBlock = latestBlocks.reduce(
-                    (max, block) => Math.max(max, block.height),
-                    toBlock || 0
-                );
-
                 for (const block of latestBlocks) {
+                    latestProcessedHeight = Math.max(
+                        block.height,
+                        latestProcessedHeight
+                    );
+
+                    const blockTimestamp = getTimestamp(block.timestamp);
+
+                    if (
+                        !(await this.networkSync.upTo(
+                            this.name,
+                            blockTimestamp
+                        ))
+                    ) {
+                        console.log(
+                            `[${this.name.toLowerCase()}][${
+                                renvmState.network
+                            }] Waiting for other network to get to ${blockTimestamp}.`
+                        );
+                        break;
+                    }
+
                     // process.stdout.write(`${block.height}\r`);
                     for (let transaction of block.transactions) {
                         const txHash =
@@ -139,9 +177,9 @@ export class VDot2Indexer extends IndexerClass<
                         console.log(
                             `[${this.name.toLowerCase()}][${
                                 renvmState.network
-                            }] Processing transaction ${CYAN}${txHash}${RESET} in block ${
-                                block.height
-                            }`
+                            }] ${green("Processing transaction")} ${cyan(
+                                txHash
+                            )} in block ${block.height}`
                         );
 
                         if (typeof transaction === "string") {
@@ -313,7 +351,7 @@ export class VDot2Indexer extends IndexerClass<
                 }
             }
 
-            renvmState.syncedBlock = latestBlock;
+            renvmState.syncedBlock = latestProcessedHeight;
             await updateTimeBlocks(
                 intermediateTimeBlocks,
                 renvmState,
@@ -324,44 +362,38 @@ export class VDot2Indexer extends IndexerClass<
             console.log(
                 `[${this.name.toLowerCase()}][${
                     renvmState.network
-                }] Already synced up to ${CYAN}${latestHeight}${RESET}`
+                }] Already synced up to #${cyan(latestBlock.height)}`
             );
+            await this.networkSync.upTo(this.name, currentTimestamp);
             renvmState.save();
         }
     }
 
     latestBlock = async (
         client: RenVMProvider | RenVMProviderVDot3
-    ): Promise<number> =>
-        (await client.queryBlock((undefined as unknown) as number)).block.header
-            .height;
+    ): Promise<CommonBlock> =>
+        this.transformBlock(
+            (await client.queryBlock((undefined as unknown) as number)).block
+        );
 
     getNextBatchOfBlocks = async (
         client: RenVMProvider | RenVMProviderVDot3,
         fromBlock: number | undefined,
         n: number
-    ): Promise<
-        Array<{
-            height: number;
-            timestamp: Moment;
-            transactions: Array<
-                | ResponseQueryMintTx["tx"]
-                | ResponseQueryBurnTx["tx"]
-                | ResponseQueryTx["tx"]
-            >;
-        }>
-    > => {
+    ): Promise<CommonBlock[]> => {
         const blocks: ResponseQueryBlocks["blocks"] = (
             await client.queryBlocks(fromBlock as number, n)
         ).blocks;
-        return blocks.map((block) => ({
-            height: block.header.height,
-            timestamp: moment(
-                new BigNumber(block.header.timestamp).times(1000).toNumber()
-            ),
-            transactions: block.data,
-        }));
+        return blocks.map(this.transformBlock);
     };
+
+    transformBlock = (block: RenVMBlock): CommonBlock => ({
+        height: block.header.height,
+        timestamp: moment(
+            new BigNumber(block.header.timestamp).times(1000).toNumber()
+        ),
+        transactions: block.data,
+    });
 
     unmarshalBurn = unmarshalBurnTx as (
         response: any

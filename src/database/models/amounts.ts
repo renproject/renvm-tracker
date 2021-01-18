@@ -94,6 +94,21 @@ export const VolumeMapTransformer: ColumnCommonOptions = {
     },
 };
 
+export const bigNumberToBigInt = (bigNumber: BigNumber): string => {
+    return bigNumber.toFixed();
+};
+
+export const bigNumberFromBigInt = (bigInt: string): BigNumber => {
+    return new BigNumber(bigInt);
+};
+
+export const BigNumberTransformer: ColumnCommonOptions = {
+    transformer: {
+        to: volumeMapToJSON,
+        from: volumeMapFromJSON,
+    },
+};
+
 export const priceMapToJSON = (priceMap: PriceMap): string =>
     JSON.stringify(priceMap.toJSON());
 

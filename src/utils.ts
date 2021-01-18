@@ -18,11 +18,6 @@ export const CRASH = (error?: any) => {
     process.exit(1);
 };
 
-export const RESET = "\x1b[0m";
-
-export const YELLOW = "\x1b[33m";
-export const CYAN = "\x1b[36m";
-
 export const time = () => new Date().getTime() / 1000;
 
 export const DEFAULT_REQUEST_TIMEOUT = 60 * SECONDS;
