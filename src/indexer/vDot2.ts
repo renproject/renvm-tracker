@@ -142,7 +142,7 @@ export class VDot2Indexer extends IndexerClass<
                 if (setBreak) {
                     break;
                 }
-                process.stdout.write(`${i}\r`);
+                // process.stdout.write(`${i}\r`);
                 const latestBlocks = await this.getNextBatchOfBlocks(
                     client,
                     i,

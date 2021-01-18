@@ -251,10 +251,9 @@ const updateTimeBlock = (
     const lockedKey =
         network === "mainnet" ? "mainnetLockedJSON" : "testnetLockedJSON";
 
-    timeBlock.pricesJSON = {
-        ...timeBlock.pricesJSON,
-        ...partialTimeBlock.pricesJSON,
-    };
+    timeBlock.pricesJSON = timeBlock.pricesJSON.merge(
+        partialTimeBlock.pricesJSON
+    );
 
     for (const [selector, amount] of partialTimeBlock[volumeKey]) {
         const asset = selector.split("/")[0];

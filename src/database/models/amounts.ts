@@ -109,8 +109,12 @@ export const BigNumberTransformer: ColumnCommonOptions = {
     },
 };
 
-export const priceMapToJSON = (priceMap: PriceMap): string =>
-    JSON.stringify(priceMap.toJSON());
+export const priceMapToJSON = (priceMap: PriceMap): string => {
+    if (!priceMap.toJSON) {
+        console.log("priceMap", priceMap);
+    }
+    return JSON.stringify(priceMap.toJSON());
+};
 
 export const priceMapFromJSON = (json: string): PriceMap =>
     OrderedMap<string, TokenPrice>(JSON.parse(json));
