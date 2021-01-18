@@ -75,6 +75,11 @@ export const processEvents = async (events: Web3Event[]) => {
             price
         );
 
+        timeBlock.pricesJSON = {
+            ...timeBlock.pricesJSON,
+            [event.symbol]: price,
+        };
+
         if (
             i + 1 < events.length &&
             getTimestamp(moment(events[i + 1].timestamp * 1000)) === timestamp

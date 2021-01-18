@@ -49,12 +49,12 @@ export const runDatabase = async (): Promise<Connection> => {
             throw error;
         }
     }
-    // await connection.dropDatabase();
+    await connection.dropDatabase();
     await connection.showMigrations();
     await connection.runMigrations();
     await connection.synchronize();
 
-    // await initializeDatabase();
+    await initializeDatabase();
 
     console.log("Connected.");
 
