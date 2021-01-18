@@ -8,11 +8,13 @@ export class NetworkSync {
     "v0.3": boolean = false;
     timestamp: number;
     initialTimestamp: number;
+    log: boolean;
 
     constructor(log: boolean = false) {
         this.mutex = new Mutex();
         this.timestamp = 0;
         this.initialTimestamp = 0;
+        this.log = log;
     }
 
     public upTo = async (
@@ -22,6 +24,13 @@ export class NetworkSync {
         const otherNetwork = network === "v0.2" ? "v0.3" : "v0.2";
 
         await this.mutex.acquire();
+
+        // if (this.log) {
+        //     console.log(
+        //         network,
+        //         `upTo(${network}, ${timestamp}): ${this.timestamp}, ${this.initialTimestamp}, ${this[network]}, ${this[otherNetwork]}`
+        //     );
+        // }
 
         if (this.timestamp === 0) {
             if (this.initialTimestamp && this[otherNetwork]) {
@@ -46,13 +55,14 @@ export class NetworkSync {
             this[network] = true;
 
             this.mutex.release();
-            return [true, this.timestamp];
+            return [false, this.timestamp];
         }
 
         this.mutex.release();
 
         return [
-            this.timestamp >= timestamp && this[otherNetwork] && this[network],
+            timestamp <= this.timestamp ||
+                (timestamp >= this.timestamp && this[otherNetwork]),
             this.timestamp,
         ];
     };
