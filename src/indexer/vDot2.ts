@@ -208,8 +208,27 @@ export class VDot2Indexer extends IndexerClass<
                         );
 
                         if (typeof transaction === "string") {
-                            transaction = (await client.queryTx(transaction))
-                                .tx as any;
+                            try {
+                                transaction = (
+                                    await client.queryTx(transaction)
+                                ).tx as any;
+                            } catch (error) {
+                                if (
+                                    /Node returned status 404 with reason: .* not found/.exec(
+                                        error.message
+                                    )
+                                ) {
+                                    console.warn(
+                                        `[${this.name.toLowerCase()}][${
+                                            renvmState.network
+                                        }] Ignoring transaction ${green(
+                                            transaction
+                                        )}`,
+                                        error
+                                    );
+                                    continue;
+                                }
+                            }
                         }
 
                         let selector;
