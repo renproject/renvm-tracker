@@ -75,10 +75,15 @@ export const processEvents = async (events: Web3Event[]) => {
             price
         );
 
-        timeBlock.pricesJSON = {
-            ...timeBlock.pricesJSON,
-            [event.symbol]: price,
-        };
+        // Update price for symbol.
+        timeBlock.pricesJSON = timeBlock.pricesJSON.set(event.symbol, {
+            decimals: 0,
+            priceInEth: 0,
+            priceInBtc: 0,
+            priceInUsd: 0,
+            ...timeBlock.pricesJSON.get(event.symbol, undefined),
+            ...price,
+        });
 
         if (
             i + 1 < events.length &&
