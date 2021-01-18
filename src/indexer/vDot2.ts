@@ -227,6 +227,8 @@ export class VDot2Indexer extends IndexerClass<
                                         error
                                     );
                                     continue;
+                                } else {
+                                    throw error;
                                 }
                             }
                         }
