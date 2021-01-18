@@ -35,24 +35,31 @@ export const addToTokenAmount = (
         existing = applyPrice(existing.amount, price);
     }
 
+    const shifted = price
+        ? existing.amount.div(new BigNumber(10).exponentiatedBy(price.decimals))
+        : null;
+
     return {
         amount: existing.amount.plus(amount.amount),
         amountInEth:
-            refreshPrice && price
-                ? existing.amount
+            refreshPrice && price && shifted
+                ? shifted
                       .times(price.priceInEth)
+                      .decimalPlaces(8)
                       .plus(amount.amountInEth)
                 : existing.amountInEth.plus(amount.amountInEth),
         amountInBtc:
-            refreshPrice && price
-                ? existing.amount
+            refreshPrice && price && shifted
+                ? shifted
                       .times(price.priceInBtc)
+                      .decimalPlaces(8)
                       .plus(amount.amountInBtc)
                 : existing.amountInBtc.plus(amount.amountInBtc),
         amountInUsd:
-            refreshPrice && price
-                ? existing.amount
+            refreshPrice && price && shifted
+                ? shifted
                       .times(price.priceInUsd)
+                      .decimalPlaces(2)
                       .plus(amount.amountInUsd)
                 : existing.amountInUsd.plus(amount.amountInUsd),
     };

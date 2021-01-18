@@ -35,7 +35,10 @@ export const initializeDatabase = async () => {
     await mainnetVDot3.save();
 };
 
-export const runDatabase = async (): Promise<Connection> => {
+export const runDatabase = async (): Promise<{
+    connection: Connection;
+    initialize: boolean;
+}> => {
     console.log(`Connecting to database...`);
 
     let connection: Connection;
@@ -49,14 +52,20 @@ export const runDatabase = async (): Promise<Connection> => {
             throw error;
         }
     }
-    await connection.dropDatabase();
+    // await connection.dropDatabase();
     await connection.showMigrations();
     await connection.runMigrations();
     await connection.synchronize();
 
-    await initializeDatabase();
+    let initialize = false;
+    try {
+        await initializeDatabase();
+        initialize = true;
+    } catch (error) {
+        // Ignore
+    }
 
     console.log("Connected.");
 
-    return connection;
+    return { connection, initialize };
 };

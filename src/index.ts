@@ -7,9 +7,9 @@ import { CRASH } from "./utils";
  * Main program function.
  */
 export const main = async (..._args: string[]) => {
-    const connection = await runDatabase();
+    const { connection, initialize } = await runDatabase();
 
-    const indexers = runIndexer(connection);
+    const indexers = runIndexer(connection, initialize);
     runServer(indexers).catch(CRASH);
 };
 
