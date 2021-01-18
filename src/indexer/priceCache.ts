@@ -106,7 +106,6 @@ export const getTokenPrice = async (
             const historicCache = historicPriceCache
                 .get(token, Map<string, TokenPrice>())
                 .get(date);
-            console.log(`historicCache[${token}][${date}]`, historicCache);
             if (historicCache) {
                 return historicCache;
             }
@@ -158,10 +157,6 @@ export const getTokenPrice = async (
                 historicPriceCache
                     .get(token, Map<string, TokenPrice>())
                     .set(date, tokenPrice)
-            );
-            console.log(
-                `Setting historicCache[${token}][${date}]`,
-                tokenPrice.priceInUsd
             );
         } else {
             priceCacheTimestamp = priceCacheTimestamp.set(token, time());
