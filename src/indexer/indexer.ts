@@ -8,7 +8,6 @@ import { VDot3Indexer } from "./vDot3";
 import { processEvents, Web3Event } from "./web3";
 import { readFile } from "fs";
 import { List } from "immutable";
-import BigNumber from "bignumber.js";
 
 export interface Indexers {
     [instances: string]: IndexerClass<unknown>;
@@ -58,16 +57,12 @@ export const runIndexer = (
                 return;
             }
 
-            const json = JSON.parse(data) as Web3Event[];
+            const eventArray = JSON.parse(data) as Web3Event[];
+            const eventList = List(eventArray).sortBy(
+                (event) => event.timestamp
+            );
 
-            let sum = new BigNumber(0);
-            for (const event of json) {
-                if (event.chain === "Ethereum" && event.symbol === "BTC") {
-                    sum = sum.plus(event.amount);
-                }
-            }
-
-            processEvents(json).then(startIndexers);
+            processEvents(eventList).then(startIndexers);
         });
     } else {
         startIndexers();

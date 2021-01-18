@@ -8,7 +8,8 @@
     "license": "MIT",
     "scripts": {
         "build": "yarn tsc",
-        "start": "yarn build && node dist/index.js"
+        "start": "(. ./.env); yarn build && node dist/index.js",
+        "historic": "(. ./.env); yarn tsc --esModuleInterop --outDir build ./historic.ts && node ./build/historic.js"
     },
     "dependencies": {
         "@glif/filecoin-rpc-client": "^1.0.0-lerna.4",

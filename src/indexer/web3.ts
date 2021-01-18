@@ -12,6 +12,7 @@ import {
 import { applyPrice, getTokenPrice } from "./priceCache";
 import moment from "moment";
 import BigNumber from "bignumber.js";
+import { List } from "immutable";
 
 export interface Web3Event {
     network: RenVMInstances; // "mainnet-v0.3";
@@ -21,7 +22,7 @@ export interface Web3Event {
     amount: string; // "69930";
 }
 
-export const processEvents = async (events: Web3Event[]) => {
+export const processEvents = async (events: List<Web3Event>) => {
     // const instances = {
     //     [RenVMInstances.Mainnet]: await RenVMInstance.findOneOrFail({
     //         name: RenVMInstances.Mainnet,
@@ -39,14 +40,29 @@ export const processEvents = async (events: Web3Event[]) => {
 
     let nextTimeBlock: TimeBlock | null = null;
 
-    for (let i = 0; i < events.length; i++) {
+    let total = new BigNumber(0);
+
+    for (let i = 0; i < events.size; i++) {
         console.log(
-            `Processing event ${i}/${events.length} (${Math.floor(
-                (i / events.length) * 100
+            `Processing event ${i}/${events.size} (${Math.floor(
+                (i / events.size) * 100
             )}%)`
         );
 
-        const event = events[i];
+        const event = events.get(i);
+
+        if (!event) {
+            continue;
+        }
+
+        if (event.network === "mainnet" && event.symbol === "BTC") {
+            total = total.plus(event.amount);
+            console.log(
+                "total",
+                total.dividedBy(new BigNumber(10).exponentiatedBy(8)).toFixed()
+            );
+        }
+
         const time = moment(event.timestamp * 1000);
         const timestamp = getTimestamp(moment(event.timestamp * 1000));
 
@@ -85,9 +101,11 @@ export const processEvents = async (events: Web3Event[]) => {
             ...price,
         });
 
+        const nextEvent = events.get(i + 1);
+
         if (
-            i + 1 < events.length &&
-            getTimestamp(moment(events[i + 1].timestamp * 1000)) === timestamp
+            nextEvent &&
+            getTimestamp(moment(nextEvent.timestamp * 1000)) === timestamp
         ) {
             nextTimeBlock = timeBlock;
         } else {

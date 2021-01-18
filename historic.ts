@@ -1,7 +1,7 @@
-const Web3 = require("web3");
-const { List } = require("immutable");
-const BigNumber = require("bignumber.js");
-const fs = require("fs");
+import Web3 from "web3";
+import { List } from "immutable";
+import BigNumber from "bignumber.js";
+import { writeFile } from "fs";
 
 const skip = 250000;
 
@@ -243,8 +243,6 @@ const getLogs = async (web3, params) => {
 };
 
 const main = async () => {
-    let fileString = "[\n";
-
     let eventArray = List();
 
     for (const networkDetails of [
@@ -266,8 +264,12 @@ const main = async () => {
 
         const web3 = new Web3(infuraURL);
 
-        const toTimestamp = (await web3.eth.getBlock(to)).timestamp;
-        const fromTimestamp = (await web3.eth.getBlock(from)).timestamp;
+        const toTimestamp = new BigNumber(
+            (await web3.eth.getBlock(to)).timestamp
+        ).toNumber();
+        const fromTimestamp = new BigNumber(
+            (await web3.eth.getBlock(from)).timestamp
+        ).toNumber();
         const blockTime = (toTimestamp - fromTimestamp) / (to - from);
 
         console.error(`Estimating block time as ${blockTime}s.`);
@@ -310,12 +312,12 @@ const main = async () => {
 
                     if (symbol === "BTC") {
                         total = total.plus(trade.amount);
+                        // console.log(
+                        //     `total: ${total
+                        //         .dividedBy(new BigNumber(10).exponentiatedBy(8))
+                        //         .toFixed()}`
+                        // );
                     }
-                    // console.log(
-                    //     `total: ${total
-                    //         .dividedBy(new BigNumber(10).exponentiatedBy(8))
-                    //         .toFixed()}`
-                    // );
                 }
 
                 const burnLogs = await getLogs(web3, {
@@ -334,8 +336,10 @@ const main = async () => {
                     ],
                 });
 
+                console.log("burnLogs", burnLogs.length);
+
                 for (const log of burnLogs) {
-                    const trade = {
+                    const burn = {
                         network,
                         chain,
                         symbol,
@@ -350,26 +354,23 @@ const main = async () => {
                             .toFixed(),
                     };
 
-                    trades = trades.push(trade);
+                    trades = trades.push(burn);
 
                     if (symbol === "BTC") {
-                        total = total.plus(trade.amount);
+                        total = total.plus(burn.amount);
+                        // console.log(
+                        //     `total: ${total
+                        //         .dividedBy(new BigNumber(10).exponentiatedBy(8))
+                        //         .toFixed()}`
+                        // );
                     }
-                    // console.log(
-                    //     `total: ${total
-                    //         .dividedBy(new BigNumber(10).exponentiatedBy(8))
-                    //         .toFixed()}`
-                    // );
                 }
             }
 
             trades = trades.sort((trade) => trade.timestamp);
 
-            for (const trade of trades) {
-                eventArray = eventArray.push(trade);
-                fileString += "  " + JSON.stringify(trade) + "," + "\n";
-                count++;
-            }
+            eventArray = eventArray.merge(trades);
+            count += trades.size;
         }
 
         console.error(
@@ -383,14 +384,11 @@ const main = async () => {
 
     eventArray = eventArray.sortBy((x) => x.timestamp);
 
-    for (const trade of eventArray) {
-        fileString = fileString + "  " + JSON.stringify(trade) + ",\n";
-    }
-
-    fileString = fileString.replace(/,\n$/, "\n]");
+    console.log(eventArray.size);
+    const fileString = JSON.stringify(eventArray.toJSON());
 
     // write file to disk
-    fs.writeFile("./out.json", fileString, "utf8", (err) => {
+    writeFile("./out.json", fileString, "utf8", (err) => {
         if (err) {
             console.log(`Error writing file: ${err}`);
         } else {
