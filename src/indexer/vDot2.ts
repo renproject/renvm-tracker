@@ -246,10 +246,10 @@ export class VDot2Indexer extends IndexerClass<
                             }
                         }
 
-                        let selector;
-                        selector =
+                        const selector =
                             (transaction as ResponseQueryMintTx["tx"]).to ||
                             (transaction as ResponseQueryTx["tx"]).selector;
+                        console.log(`Selector`, selector);
 
                         let parsed: {
                             asset: string;
@@ -515,7 +515,8 @@ export class VDot2Indexer extends IndexerClass<
                     timeblock.timestamp,
                     timeblock.mainnetLockedJSON
                         .get("BTC/Ethereum", null)
-                        ?.amount.toFixed()
+                        ?.amount.dividedBy(new BigNumber(10).exponentiatedBy(8))
+                        .toFixed()
                 );
             }
             // await renvmState.save();
