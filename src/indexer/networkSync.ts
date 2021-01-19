@@ -1,5 +1,5 @@
 import { Mutex } from "async-mutex";
-import { RenVMInstances } from "src/database/models";
+import { RenVMInstances } from "../database/models";
 import { TIME_BLOCK_LENGTH } from "../database/models/TimeBlock";
 
 export class NetworkSync {
