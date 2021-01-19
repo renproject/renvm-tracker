@@ -136,7 +136,6 @@ export const getTimeBlock = async (timestamp: Moment | number) => {
             previousTimeBlock ? previousTimeBlock.testnetLockedJSON : undefined,
             previousTimeBlock ? previousTimeBlock.pricesJSON : undefined
         );
-        await timeBlock.save();
     }
 
     return timeBlock;
@@ -210,8 +209,8 @@ export const subtractLocked = <T extends PartialTimeBlock>(
 };
 
 export enum MintOrBurn {
-    MINT,
-    BURN,
+    MINT = "MINT",
+    BURN = "BURN",
 }
 
 const v1ChainMap = OrderedMap<string, string>().set("Eth", "Ethereum");

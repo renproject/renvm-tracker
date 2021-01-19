@@ -1,3 +1,6 @@
+import moment from "moment";
+import { Moment } from "moment";
+
 /**
  * Represents 1 second for functions that accept a parameter in milliseconds.
  */
@@ -21,3 +24,6 @@ export const CRASH = (error?: any) => {
 export const time = () => new Date().getTime() / 1000;
 
 export const DEFAULT_REQUEST_TIMEOUT = 60 * SECONDS;
+
+export const naturalDiff = (after: Moment, before: Moment) =>
+    moment.duration(after.diff(before)).humanize();

@@ -52,7 +52,7 @@ export const runDatabase = async (): Promise<{
             throw error;
         }
     }
-    // await connection.dropDatabase();
+    await connection.dropDatabase();
     await connection.showMigrations();
     await connection.runMigrations();
     await connection.synchronize();

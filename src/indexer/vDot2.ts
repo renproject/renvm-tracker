@@ -37,6 +37,7 @@ import { Connection } from "typeorm";
 import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
 import { NetworkSync } from "./networkSync";
 import { blue, cyan, green, yellow } from "chalk";
+import { naturalDiff } from "../utils";
 
 export interface CommonBlock<
     T =
@@ -55,15 +56,15 @@ export class VDot2Indexer extends IndexerClass<
     name: "v0.2" | "v0.3" = "v0.2";
 
     BATCH_SIZE = 40;
-    BATCH_COUNT = 100;
+    BATCH_COUNT = 1000;
 
     latestTimestamp = 0;
-    networkSync: NetworkSync;
+    networkSync: NetworkSync | undefined;
 
     constructor(
         instance: RenVMInstances,
         connection: Connection,
-        networkSync: NetworkSync
+        networkSync?: NetworkSync
     ) {
         super(instance, connection);
         this.networkSync = networkSync;
@@ -94,7 +95,7 @@ export class VDot2Indexer extends IndexerClass<
 
         // Detect migration - latest block height has been reset.
         if (syncedHeight > 1 && latestBlock.height < syncedHeight - 1000) {
-            console.log(
+            console.warn(
                 `[${this.name.toLowerCase()}][${
                     renvmState.network
                 }] Detected block reset.`
@@ -105,7 +106,7 @@ export class VDot2Indexer extends IndexerClass<
         }
 
         if (syncedHeight === 1 && renvmState.migrationCount === 0) {
-            console.log(
+            console.warn(
                 `[${this.name.toLowerCase()}][${
                     renvmState.network
                 }] Starting indexer fom latest block - ${
@@ -125,7 +126,7 @@ export class VDot2Indexer extends IndexerClass<
                 syncedHeight + this.BATCH_SIZE * this.BATCH_COUNT - 1
             );
 
-            console.log(
+            console.warn(
                 `[${this.name.toLowerCase()}][${
                     renvmState.network
                 }] Syncing from #${cyan(renvmState.syncedBlock)} to #${cyan(
@@ -152,7 +153,7 @@ export class VDot2Indexer extends IndexerClass<
                 );
 
                 for (const block of latestBlocks) {
-                    // console.log(
+                    // console.warn(
                     //     `[${this.name.toLowerCase()}][${
                     //         renvmState.network
                     //     }] Processing block #${blue(block.height)}`
@@ -160,31 +161,39 @@ export class VDot2Indexer extends IndexerClass<
 
                     const blockTimestamp = getTimestamp(block.timestamp);
 
-                    const [
-                        networkSynced,
-                        networkSyncProgress,
-                    ] = await this.networkSync.upTo(this.name, blockTimestamp);
-
-                    if (!networkSynced) {
-                        const difference =
-                            networkSyncProgress === 0
-                                ? "?"
-                                : moment
-                                      .duration(
-                                          moment(blockTimestamp * 1000).diff(
-                                              networkSyncProgress * 1000
-                                          )
-                                      )
-                                      .humanize();
-                        console.log(
-                            `[${this.name.toLowerCase()}][${
-                                renvmState.network
-                            }] Waiting for other network to get to ${blockTimestamp} (${yellow(
-                                difference
-                            )} behind)`
+                    if (this.networkSync) {
+                        const [
+                            networkSynced,
+                            networkSyncProgress,
+                        ] = await this.networkSync.upTo(
+                            this.name,
+                            blockTimestamp
                         );
-                        setBreak = true;
-                        break;
+
+                        if (!networkSynced) {
+                            const difference =
+                                networkSyncProgress === 0
+                                    ? "?"
+                                    : naturalDiff(
+                                          moment(blockTimestamp * 1000),
+                                          moment(networkSyncProgress * 1000)
+                                      );
+
+                            const lag = naturalDiff(
+                                moment(),
+                                moment(networkSyncProgress * 1000)
+                            );
+
+                            console.warn(
+                                `[${this.name.toLowerCase()}][${
+                                    renvmState.network
+                                }] Waiting for other network to get to ${blockTimestamp} (${yellow(
+                                    difference
+                                )} difference, ${lag} behind)`
+                            );
+                            setBreak = true;
+                            break;
+                        }
                     }
 
                     latestProcessedHeight = Math.max(
@@ -199,7 +208,7 @@ export class VDot2Indexer extends IndexerClass<
                                 ? transaction
                                 : transaction.hash;
 
-                        console.log(
+                        console.warn(
                             `[${this.name.toLowerCase()}][${
                                 renvmState.network
                             }] ${green("Processing transaction")} ${cyan(
@@ -268,56 +277,76 @@ export class VDot2Indexer extends IndexerClass<
                                 txStatus: TxStatus.TxStatusDone,
                             });
 
-                            const amount = tx.in.amount;
+                            // Check that the transaction wasn't reverted.
+                            if (
+                                tx.out &&
+                                (tx.out as any).revert === undefined
+                            ) {
+                                const amount = tx.in.amount;
 
-                            const previousTimeBlock = intermediateTimeBlocks.last(
-                                undefined
-                            );
-                            intermediateTimeBlock.pricesJSON = intermediateTimeBlock.pricesJSON.set(
-                                asset,
-                                {
-                                    decimals: 0,
-                                    priceInEth: 0,
-                                    priceInBtc: 0,
-                                    priceInUsd: 0,
-                                    ...(previousTimeBlock
-                                        ? previousTimeBlock.pricesJSON.get(
-                                              asset,
-                                              undefined
-                                          )
-                                        : undefined),
-                                    ...intermediateTimeBlock.pricesJSON.get(
-                                        asset,
-                                        undefined
-                                    ),
-                                    ...(await getTokenPrice(asset, timestamp)),
+                                const previousTimeBlock = intermediateTimeBlocks.last(
+                                    undefined
+                                );
+                                intermediateTimeBlock.pricesJSON = intermediateTimeBlock.pricesJSON.set(
+                                    asset,
+                                    {
+                                        decimals: 0,
+                                        priceInEth: 0,
+                                        priceInBtc: 0,
+                                        priceInUsd: 0,
+                                        ...(previousTimeBlock
+                                            ? previousTimeBlock.pricesJSON.get(
+                                                  asset,
+                                                  undefined
+                                              )
+                                            : undefined),
+                                        ...intermediateTimeBlock.pricesJSON.get(
+                                            asset,
+                                            undefined
+                                        ),
+                                        ...(await getTokenPrice(
+                                            asset,
+                                            timestamp
+                                        )),
+                                    }
+                                );
+
+                                const tokenPrice = intermediateTimeBlock.pricesJSON.get(
+                                    asset,
+                                    undefined
+                                );
+                                const amountWithPrice = applyPrice(
+                                    new BigNumber(amount),
+                                    tokenPrice
+                                );
+
+                                intermediateTimeBlock = await addVolume(
+                                    intermediateTimeBlock,
+                                    renvmState.network,
+                                    token,
+                                    amountWithPrice,
+                                    tokenPrice
+                                );
+
+                                intermediateTimeBlock = await subtractLocked(
+                                    intermediateTimeBlock,
+                                    renvmState.network,
+                                    token,
+                                    amountWithPrice,
+                                    tokenPrice
+                                );
+
+                                if (
+                                    this.instance === "mainnet" &&
+                                    asset === "BTC"
+                                ) {
+                                    console.log(
+                                        `${mintOrBurn} ${amountWithPrice.amount.div(
+                                            new BigNumber(10).exponentiatedBy(8)
+                                        )} BTC`
+                                    );
                                 }
-                            );
-
-                            const tokenPrice = intermediateTimeBlock.pricesJSON.get(
-                                asset,
-                                undefined
-                            );
-                            const amountWithPrice = applyPrice(
-                                new BigNumber(amount),
-                                tokenPrice
-                            );
-
-                            intermediateTimeBlock = await addVolume(
-                                intermediateTimeBlock,
-                                renvmState.network,
-                                token,
-                                amountWithPrice,
-                                tokenPrice
-                            );
-
-                            intermediateTimeBlock = await subtractLocked(
-                                intermediateTimeBlock,
-                                renvmState.network,
-                                token,
-                                amountWithPrice,
-                                tokenPrice
-                            );
+                            }
                         } else if (mintOrBurn === MintOrBurn.MINT) {
                             // Mint
 
@@ -382,6 +411,17 @@ export class VDot2Indexer extends IndexerClass<
                                     amountWithPrice,
                                     tokenPrice
                                 );
+
+                                if (
+                                    this.instance === "mainnet" &&
+                                    asset === "BTC"
+                                ) {
+                                    console.log(
+                                        `${mintOrBurn} ${amountWithPrice.amount.div(
+                                            new BigNumber(10).exponentiatedBy(8)
+                                        )} BTC`
+                                    );
+                                }
                             }
                         } else {
                             console.error(
@@ -414,12 +454,14 @@ export class VDot2Indexer extends IndexerClass<
             );
             // await renvmState.save();
         } else {
-            console.log(
+            console.warn(
                 `[${this.name.toLowerCase()}][${
                     renvmState.network
                 }] Already synced up to #${cyan(latestBlock.height)}`
             );
-            await this.networkSync.upTo(this.name, currentTimestamp);
+            if (this.networkSync) {
+                await this.networkSync.upTo(this.name, currentTimestamp);
+            }
             renvmState.save();
         }
     }
