@@ -433,9 +433,13 @@ export class VDot2Indexer extends IndexerClass<
                                     asset === "BTC"
                                 ) {
                                     console.log(
-                                        `${mintOrBurn} ${amountWithPrice.amount.div(
-                                            new BigNumber(10).exponentiatedBy(8)
-                                        )} BTC`
+                                        `${mintOrBurn} ${amountWithPrice.amount
+                                            .div(
+                                                new BigNumber(
+                                                    10
+                                                ).exponentiatedBy(8)
+                                            )
+                                            .toFixed()} BTC`
                                     );
                                 }
 
@@ -470,9 +474,27 @@ export class VDot2Indexer extends IndexerClass<
                         renvmState.network
                     }] Processed ${blue(
                         latestProcessedHeight - renvmState.syncedBlock
-                    )} blocks.`
+                    )} blocks. Saving ${
+                        intermediateTimeBlocks.size
+                    } time blocks.`
                 );
             }
+
+            if (this.instance === "mainnet") {
+                const btcSum = intermediateTimeBlocks.reduce(
+                    (acc, v) =>
+                        acc.plus(
+                            v.mainnetLockedJSON.get("BTC/Ethereum")?.amount || 0
+                        ),
+                    new BigNumber(0)
+                );
+                console.log(
+                    `Adding ${btcSum
+                        .div(new BigNumber(10).exponentiatedBy(8))
+                        .toFixed()} timeblocks`
+                );
+            }
+
             renvmState.syncedBlock = latestProcessedHeight;
             await updateTimeBlocks(
                 intermediateTimeBlocks,
