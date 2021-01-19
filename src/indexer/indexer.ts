@@ -21,31 +21,31 @@ export const runIndexer = (
     initialize: boolean
 ): Indexers => {
     // const testnetSync = new NetworkSync();
-    const mainnetSync = new NetworkSync(true);
+    const networkSync = new NetworkSync(true);
 
     const startIndexers = () => {
-        // const testnetVDot2Indexer = new VDot2Indexer(
-        //     RenVMInstances.Testnet,
-        //     connection,
-        //     testnetSync
-        // );
-        // testnetVDot2Indexer.start().catch(CRASH);
+        const testnetVDot2Indexer = new VDot2Indexer(
+            RenVMInstances.Testnet,
+            connection,
+            networkSync
+        );
+        testnetVDot2Indexer.start().catch(CRASH);
         const mainnetVDot2Indexer = new VDot2Indexer(
             RenVMInstances.Mainnet,
             connection,
-            mainnetSync
+            networkSync
         );
         mainnetVDot2Indexer.start().catch(CRASH);
-        // const testnetVDot3Indexer = new VDot3Indexer(
-        //     RenVMInstances.TestnetVDot3,
-        //     connection,
-        //     testnetSync
-        // );
-        // testnetVDot3Indexer.start().catch(CRASH);
+        const testnetVDot3Indexer = new VDot3Indexer(
+            RenVMInstances.TestnetVDot3,
+            connection,
+            networkSync
+        );
+        testnetVDot3Indexer.start().catch(CRASH);
         const mainnetVDot3Indexer = new VDot3Indexer(
             RenVMInstances.MainnetVDot3,
             connection,
-            mainnetSync
+            networkSync
         );
         mainnetVDot3Indexer.start().catch(CRASH);
     };

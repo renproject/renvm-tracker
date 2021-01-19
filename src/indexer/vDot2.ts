@@ -170,7 +170,7 @@ export class VDot2Indexer extends IndexerClass<
                             networkSynced,
                             networkSyncProgress,
                         ] = await this.networkSync.upTo(
-                            this.name,
+                            this.instance,
                             blockTimestamp
                         );
 
@@ -249,7 +249,6 @@ export class VDot2Indexer extends IndexerClass<
                         const selector =
                             (transaction as ResponseQueryMintTx["tx"]).to ||
                             (transaction as ResponseQueryTx["tx"]).selector;
-                        console.log(`Selector`, selector);
 
                         let parsed: {
                             asset: string;
@@ -265,6 +264,8 @@ export class VDot2Indexer extends IndexerClass<
                             continue;
                         }
                         const { asset, token, mintOrBurn } = parsed;
+
+                        console.log(`Selector`, selector, mintOrBurn);
 
                         const timestamp = block.timestamp;
 
@@ -490,9 +491,9 @@ export class VDot2Indexer extends IndexerClass<
                     new BigNumber(0)
                 );
                 console.log(
-                    `Adding ${btcSum
+                    `Adding records with ${btcSum
                         .div(new BigNumber(10).exponentiatedBy(8))
-                        .toFixed()} timeblocks`
+                        .toFixed()} BTC to database`
                 );
             }
 
@@ -527,7 +528,7 @@ export class VDot2Indexer extends IndexerClass<
                 }] Already synced up to #${cyan(latestBlock.height)}`
             );
             if (this.networkSync) {
-                await this.networkSync.upTo(this.name, currentTimestamp);
+                await this.networkSync.upTo(this.instance, currentTimestamp);
             }
             renvmState.save();
         }

@@ -1,11 +1,15 @@
 import { Mutex } from "async-mutex";
+import { RenVMInstances } from "src/database/models";
 import { TIME_BLOCK_LENGTH } from "../database/models/TimeBlock";
 
 export class NetworkSync {
     mutex: Mutex;
 
-    "v0.2": boolean = false;
-    "v0.3": boolean = false;
+    "mainnet": boolean = false;
+    "mainnet-v0.3": boolean = false;
+    "testnet": boolean = false;
+    "testnet-v0.3": boolean = false;
+
     timestamp: number;
     initialTimestamp: number;
     log: boolean;
@@ -18,10 +22,27 @@ export class NetworkSync {
     }
 
     public upTo = async (
-        network: "v0.2" | "v0.3",
+        network: RenVMInstances,
         timestamp: number
     ): Promise<[boolean, number]> => {
-        const otherNetwork = network === "v0.2" ? "v0.3" : "v0.2";
+        const otherNetwork =
+            network === RenVMInstances.Mainnet
+                ? this[RenVMInstances.MainnetVDot3] &&
+                  this[RenVMInstances.Testnet] &&
+                  this[RenVMInstances.TestnetVDot3]
+                : network === RenVMInstances.MainnetVDot3
+                ? this[RenVMInstances.Mainnet] &&
+                  this[RenVMInstances.Testnet] &&
+                  this[RenVMInstances.TestnetVDot3]
+                : network === RenVMInstances.Testnet
+                ? this[RenVMInstances.Mainnet] &&
+                  this[RenVMInstances.MainnetVDot3] &&
+                  this[RenVMInstances.TestnetVDot3]
+                : network === RenVMInstances.TestnetVDot3
+                ? this[RenVMInstances.Mainnet] &&
+                  this[RenVMInstances.MainnetVDot3] &&
+                  this[RenVMInstances.Testnet]
+                : false;
 
         await this.mutex.acquire();
 
@@ -33,7 +54,7 @@ export class NetworkSync {
         // }
 
         if (this.timestamp === 0) {
-            if (this.initialTimestamp && this[otherNetwork]) {
+            if (this.initialTimestamp && otherNetwork) {
                 this.timestamp = Math.min(timestamp, this.initialTimestamp);
             } else {
                 this.initialTimestamp = timestamp;
@@ -46,12 +67,17 @@ export class NetworkSync {
             return [false, this.timestamp];
         }
 
-        if (timestamp > this.timestamp && this[network] && this[otherNetwork]) {
+        if (timestamp > this.timestamp && this[network] && otherNetwork) {
             this.timestamp =
                 this.timestamp > 0
                     ? this.timestamp + TIME_BLOCK_LENGTH
                     : timestamp;
-            this[otherNetwork] = false;
+
+            this[RenVMInstances.Mainnet] = false;
+            this[RenVMInstances.MainnetVDot3] = false;
+            this[RenVMInstances.Testnet] = false;
+            this[RenVMInstances.TestnetVDot3] = false;
+
             this[network] = true;
 
             this.mutex.release();
@@ -62,7 +88,7 @@ export class NetworkSync {
 
         return [
             timestamp <= this.timestamp ||
-                (timestamp >= this.timestamp && this[otherNetwork]),
+                (timestamp >= this.timestamp && otherNetwork),
             this.timestamp,
         ];
     };
