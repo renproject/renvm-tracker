@@ -26,6 +26,7 @@ import {
     PartialTimeBlock,
     RenVMInstances,
     subtractLocked,
+    TimeBlock,
     updateTimeBlocks,
 } from "../database/models";
 import { IndexerClass } from "./base";
@@ -57,7 +58,7 @@ export class VDot2Indexer extends IndexerClass<
     name: "v0.2" | "v0.3" = "v0.2";
 
     BATCH_SIZE = 40;
-    BATCH_COUNT = 1000;
+    BATCH_COUNT = 100;
 
     latestTimestamp = 0;
     networkSync: NetworkSync | undefined;
@@ -146,7 +147,7 @@ export class VDot2Indexer extends IndexerClass<
                 if (setBreak) {
                     break;
                 }
-                // process.stdout.write(`${i}\r`);
+                process.stdout.write(`${i}\r`);
                 const latestBlocks = await this.getNextBatchOfBlocks(
                     client,
                     i,
@@ -502,6 +503,21 @@ export class VDot2Indexer extends IndexerClass<
                 this.connection,
                 []
             );
+
+            const timeblock = await TimeBlock.findOne({
+                order: {
+                    timestamp: "DESC",
+                },
+            });
+            if (timeblock) {
+                console.log(
+                    "latest timeblock",
+                    timeblock.timestamp,
+                    timeblock.mainnetLockedJSON
+                        .get("BTC/Ethereum", null)
+                        ?.amount.toFixed()
+                );
+            }
             // await renvmState.save();
         } else {
             console.warn(
