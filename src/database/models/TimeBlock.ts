@@ -27,6 +27,7 @@ import {
 import { List, OrderedMap } from "immutable";
 import { RenVMInstance } from "./RenVMInstance";
 import BigNumber from "bignumber.js";
+import { red, redBright } from "chalk";
 
 export enum RenNetwork {
     Mainnet = "mainnet",
@@ -127,6 +128,12 @@ export const getTimeBlock = async (timestamp: Moment | number) => {
                 timestamp: "DESC",
             },
         });
+
+        console.log(
+            red(
+                `Creating new timeblock ${unixTimestamp} based on ${previousTimeBlock?.timestamp}`
+            )
+        );
 
         timeBlock = new TimeBlock(
             unixTimestamp,
@@ -292,13 +299,14 @@ export const updateTimeBlocks = async (
         let timeblocks = List<TimeBlock>();
 
         for (const [timestamp, partialTimeBlock] of partialTimeBlocks) {
-            timeblocks = timeblocks.push(
-                updateTimeBlock(
-                    await getTimeBlock(timestamp),
-                    partialTimeBlock,
-                    renVM.network
-                )
+            const timeblock = updateTimeBlock(
+                await getTimeBlock(timestamp),
+                partialTimeBlock,
+                renVM.network
             );
+            timeblocks = timeblocks.push(timeblock);
+
+            console.log(redBright(`Writing to block ${timeblock.timestamp}`));
         }
 
         await connection.manager.save([
