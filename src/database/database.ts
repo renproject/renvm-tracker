@@ -60,7 +60,7 @@ export const runDatabase = async (): Promise<{
     let initialize = false;
     try {
         await initializeDatabase();
-        // initialize = true;
+        initialize = true;
     } catch (error) {
         // Ignore
     }

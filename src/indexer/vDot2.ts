@@ -147,7 +147,7 @@ export class VDot2Indexer extends IndexerClass<
                 if (setBreak) {
                     break;
                 }
-                process.stdout.write(`${i}\r`);
+                // process.stdout.write(`${i}\r`);
                 const latestBlocks = await this.getNextBatchOfBlocks(
                     client,
                     i,
@@ -265,8 +265,6 @@ export class VDot2Indexer extends IndexerClass<
                         }
                         const { asset, token, mintOrBurn } = parsed;
 
-                        console.log(`Selector`, selector, mintOrBurn);
-
                         const timestamp = block.timestamp;
 
                         let intermediateTimeBlock = intermediateTimeBlocks.get(
@@ -346,7 +344,9 @@ export class VDot2Indexer extends IndexerClass<
                                     asset === "BTC"
                                 ) {
                                     console.log(
-                                        `${mintOrBurn} ${amountWithPrice.amount.div(
+                                        `[${this.name.toLowerCase()}][${
+                                            renvmState.network
+                                        }] ${mintOrBurn} ${amountWithPrice.amount.div(
                                             new BigNumber(10).exponentiatedBy(8)
                                         )} BTC`
                                     );
@@ -435,7 +435,9 @@ export class VDot2Indexer extends IndexerClass<
                                     asset === "BTC"
                                 ) {
                                     console.log(
-                                        `${mintOrBurn} ${amountWithPrice.amount
+                                        `[${this.name.toLowerCase()}][${
+                                            renvmState.network
+                                        }] ${mintOrBurn} ${amountWithPrice.amount
                                             .div(
                                                 new BigNumber(
                                                     10
@@ -505,21 +507,11 @@ export class VDot2Indexer extends IndexerClass<
                 []
             );
 
-            const timeblock = await TimeBlock.findOne({
-                order: {
-                    timestamp: "DESC",
-                },
-            });
-            if (timeblock) {
-                console.log(
-                    "latest timeblock",
-                    timeblock.timestamp,
-                    timeblock.mainnetLockedJSON
-                        .get("BTC/Ethereum", null)
-                        ?.amount.dividedBy(new BigNumber(10).exponentiatedBy(8))
-                        .toFixed()
-                );
-            }
+            // const timeblock = await TimeBlock.findOne({
+            //     order: {
+            //         timestamp: "DESC",
+            //     },
+            // });
             // await renvmState.save();
         } else {
             console.warn(
