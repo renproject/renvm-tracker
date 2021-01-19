@@ -21,7 +21,7 @@ export const runIndexer = (
     initialize: boolean
 ): Indexers => {
     // const testnetSync = new NetworkSync();
-    // const mainnetSync = new NetworkSync(true);
+    const mainnetSync = new NetworkSync(true);
 
     const startIndexers = () => {
         // const testnetVDot2Indexer = new VDot2Indexer(
@@ -32,8 +32,8 @@ export const runIndexer = (
         // testnetVDot2Indexer.start().catch(CRASH);
         const mainnetVDot2Indexer = new VDot2Indexer(
             RenVMInstances.Mainnet,
-            connection
-            // mainnetSync
+            connection,
+            mainnetSync
         );
         mainnetVDot2Indexer.start().catch(CRASH);
         // const testnetVDot3Indexer = new VDot3Indexer(
@@ -42,12 +42,12 @@ export const runIndexer = (
         //     testnetSync
         // );
         // testnetVDot3Indexer.start().catch(CRASH);
-        // const mainnetVDot3Indexer = new VDot3Indexer(
-        //     RenVMInstances.MainnetVDot3,
-        //     connection,
-        //     mainnetSync
-        // );
-        // mainnetVDot3Indexer.start().catch(CRASH);
+        const mainnetVDot3Indexer = new VDot3Indexer(
+            RenVMInstances.MainnetVDot3,
+            connection,
+            mainnetSync
+        );
+        mainnetVDot3Indexer.start().catch(CRASH);
     };
 
     if (initialize) {
