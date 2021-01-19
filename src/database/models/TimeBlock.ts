@@ -283,7 +283,8 @@ const updateTimeBlock = (
 export const updateTimeBlocks = async (
     partialTimeBlocks: OrderedMap<number, PartialTimeBlock>,
     renVM: RenVMInstance,
-    connection: Connection
+    connection: Connection,
+    entities: any[]
 ) => {
     await mutex.acquire();
 
@@ -300,7 +301,11 @@ export const updateTimeBlocks = async (
             );
         }
 
-        await connection.manager.save([...timeblocks.toArray(), renVM]);
+        await connection.manager.save([
+            ...timeblocks.toArray(),
+            ...entities,
+            renVM,
+        ]);
     } finally {
         mutex.release();
     }

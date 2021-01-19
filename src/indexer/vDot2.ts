@@ -38,6 +38,7 @@ import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
 import { NetworkSync } from "./networkSync";
 import { blue, cyan, green, yellow } from "chalk";
 import { naturalDiff } from "../utils";
+import { Transaction } from "src/database/models/Transaction";
 
 export interface CommonBlock<
     T =
@@ -137,6 +138,8 @@ export class VDot2Indexer extends IndexerClass<
             let intermediateTimeBlocks = OrderedMap<number, PartialTimeBlock>();
 
             let setBreak = false;
+
+            let saveQueue = [];
 
             let latestProcessedHeight = syncedHeight;
             for (let i = syncedHeight; i <= toBlock; i += this.BATCH_SIZE) {
@@ -346,6 +349,19 @@ export class VDot2Indexer extends IndexerClass<
                                         )} BTC`
                                     );
                                 }
+
+                                saveQueue.push(
+                                    new Transaction(
+                                        token,
+                                        new BigNumber(amount)
+                                            .negated()
+                                            .toFixed(),
+                                        renvmState.network,
+                                        this.instance,
+                                        timestamp.unix(),
+                                        block.height
+                                    )
+                                );
                             }
                         } else if (mintOrBurn === MintOrBurn.MINT) {
                             // Mint
@@ -422,6 +438,17 @@ export class VDot2Indexer extends IndexerClass<
                                         )} BTC`
                                     );
                                 }
+
+                                saveQueue.push(
+                                    new Transaction(
+                                        token,
+                                        amount,
+                                        renvmState.network,
+                                        this.instance,
+                                        timestamp.unix(),
+                                        block.height
+                                    )
+                                );
                             }
                         } else {
                             console.error(
@@ -450,7 +477,8 @@ export class VDot2Indexer extends IndexerClass<
             await updateTimeBlocks(
                 intermediateTimeBlocks,
                 renvmState,
-                this.connection
+                this.connection,
+                []
             );
             // await renvmState.save();
         } else {
