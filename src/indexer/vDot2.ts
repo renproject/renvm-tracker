@@ -38,7 +38,7 @@ import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
 import { NetworkSync } from "./networkSync";
 import { blue, cyan, green, yellow } from "chalk";
 import { naturalDiff } from "../utils";
-import { Transaction } from "src/database/models/Transaction";
+import { Transaction } from "../database/models/Transaction";
 
 export interface CommonBlock<
     T =
