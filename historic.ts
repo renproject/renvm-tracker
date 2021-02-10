@@ -232,7 +232,7 @@ const bscMainnet = {
     infuraURL: "https://bsc-dataseed.binance.org/",
 };
 
-const getLogs = async (web3, params) => {
+const getLogs = async (web3: Web3, params) => {
     while (true) {
         try {
             return await web3.eth.getPastLogs(params);
@@ -318,6 +318,13 @@ const main = async () => {
                         //         .toFixed()}`
                         // );
                     }
+                    // if (symbol === "BTC" && log.blockNumber > 11676149) {
+                    //     console.log(
+                    //         `Mint: ${new BigNumber(trade.amount)
+                    //             .dividedBy(new BigNumber(10).exponentiatedBy(8))
+                    //             .toFixed()} BTC`
+                    //     );
+                    // }
                 }
 
                 const burnLogs = await getLogs(web3, {
@@ -364,6 +371,14 @@ const main = async () => {
                         //         .toFixed()}`
                         // );
                     }
+
+                    // if (symbol === "BTC" && log.blockNumber > 11676149) {
+                    //     console.log(
+                    //         `Burn: ${new BigNumber(burn.amount)
+                    //             .dividedBy(new BigNumber(10).exponentiatedBy(8))
+                    //             .toFixed()} BTC`
+                    //     );
+                    // }
                 }
             }
 

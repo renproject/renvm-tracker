@@ -28,18 +28,18 @@ import {
     subtractLocked,
     TimeBlock,
     updateTimeBlocks,
-} from "../database/models";
-import { IndexerClass } from "./base";
-import { applyPrice, getTokenPrice } from "./priceCache";
+} from "../../database/models";
+import { IndexerClass } from "../base";
+import { applyPrice, getTokenPrice } from "../PriceFetcher";
 import moment, { Moment } from "moment";
 import BigNumber from "bignumber.js";
 import { OrderedMap } from "immutable";
 import { Connection } from "typeorm";
 import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
-import { NetworkSync } from "./networkSync";
 import { blue, cyan, green, yellow } from "chalk";
-import { naturalDiff } from "../utils";
-import { Transaction } from "../database/models/Transaction";
+import { naturalDiff } from "../../utils";
+import { Transaction } from "../../database/models/Transaction";
+import { TimeBlockV2 } from "../../database/models/TimeBlockV2";
 
 export interface CommonBlock<
     T =
@@ -61,15 +61,12 @@ export class VDot2Indexer extends IndexerClass<
     BATCH_COUNT = 100;
 
     latestTimestamp = 0;
-    networkSync: NetworkSync | undefined;
 
-    constructor(
-        instance: RenVMInstances,
-        connection: Connection,
-        networkSync?: NetworkSync
-    ) {
+    TimeBlockVersion: typeof TimeBlock | typeof TimeBlockV2;
+
+    constructor(instance: RenVMInstances, connection: Connection) {
         super(instance, connection);
-        this.networkSync = networkSync;
+        this.TimeBlockVersion = TimeBlockV2;
     }
 
     async connect() {
@@ -162,43 +159,6 @@ export class VDot2Indexer extends IndexerClass<
                     //         renvmState.network
                     //     }] Processing block #${blue(block.height)}`
                     // );
-
-                    const blockTimestamp = getTimestamp(block.timestamp);
-
-                    if (this.networkSync) {
-                        const [
-                            networkSynced,
-                            networkSyncProgress,
-                        ] = await this.networkSync.upTo(
-                            this.instance,
-                            blockTimestamp
-                        );
-
-                        if (!networkSynced) {
-                            const difference =
-                                networkSyncProgress === 0
-                                    ? "?"
-                                    : naturalDiff(
-                                          moment(blockTimestamp * 1000),
-                                          moment(networkSyncProgress * 1000)
-                                      );
-
-                            const lag = naturalDiff(
-                                moment(),
-                                moment(networkSyncProgress * 1000)
-                            );
-
-                            console.warn(
-                                `[${this.name.toLowerCase()}][${
-                                    renvmState.network
-                                }] Waiting for other network to get to ${blockTimestamp} (${yellow(
-                                    difference
-                                )} difference, ${lag} behind)`
-                            );
-                            setBreak = true;
-                            break;
-                        }
-                    }
 
                     latestProcessedHeight = Math.max(
                         block.height,
@@ -325,7 +285,6 @@ export class VDot2Indexer extends IndexerClass<
 
                                 intermediateTimeBlock = await addVolume(
                                     intermediateTimeBlock,
-                                    renvmState.network,
                                     token,
                                     amountWithPrice,
                                     tokenPrice
@@ -333,7 +292,6 @@ export class VDot2Indexer extends IndexerClass<
 
                                 intermediateTimeBlock = await subtractLocked(
                                     intermediateTimeBlock,
-                                    renvmState.network,
                                     token,
                                     amountWithPrice,
                                     tokenPrice
@@ -416,7 +374,6 @@ export class VDot2Indexer extends IndexerClass<
 
                                 intermediateTimeBlock = await addVolume(
                                     intermediateTimeBlock,
-                                    renvmState.network,
                                     token,
                                     amountWithPrice,
                                     tokenPrice
@@ -424,7 +381,6 @@ export class VDot2Indexer extends IndexerClass<
 
                                 intermediateTimeBlock = await addLocked(
                                     intermediateTimeBlock,
-                                    renvmState.network,
                                     token,
                                     amountWithPrice,
                                     tokenPrice
@@ -484,44 +440,20 @@ export class VDot2Indexer extends IndexerClass<
                 );
             }
 
-            if (this.instance === "mainnet") {
-                const btcSum = intermediateTimeBlocks.reduce(
-                    (acc, v) =>
-                        acc.plus(
-                            v.mainnetLockedJSON.get("BTC/Ethereum")?.amount || 0
-                        ),
-                    new BigNumber(0)
-                );
-                console.log(
-                    `Adding records with ${btcSum
-                        .div(new BigNumber(10).exponentiatedBy(8))
-                        .toFixed()} BTC to database`
-                );
-            }
-
             renvmState.syncedBlock = latestProcessedHeight;
             await updateTimeBlocks(
+                this.TimeBlockVersion,
                 intermediateTimeBlocks,
                 renvmState,
                 this.connection,
                 []
             );
-
-            // const timeblock = await TimeBlock.findOne({
-            //     order: {
-            //         timestamp: "DESC",
-            //     },
-            // });
-            // await renvmState.save();
         } else {
             console.warn(
                 `[${this.name.toLowerCase()}][${
                     renvmState.network
                 }] Already synced up to #${cyan(latestBlock.height)}`
             );
-            if (this.networkSync) {
-                await this.networkSync.upTo(this.instance, currentTimestamp);
-            }
             renvmState.save();
         }
     }

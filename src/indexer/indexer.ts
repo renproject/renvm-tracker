@@ -2,10 +2,9 @@ import { Connection } from "typeorm";
 import { RenVMInstances } from "../database/models";
 import { CRASH } from "../utils";
 import { IndexerClass } from "./base";
-import { NetworkSync } from "./networkSync";
-import { VDot2Indexer } from "./vDot2";
-import { VDot3Indexer } from "./vDot3";
-import { processEvents, Web3Event } from "./web3";
+import { VDot2Indexer } from "./blockFetchers/vDot2";
+import { VDot3Indexer } from "./blockFetchers/vDot3";
+import { processEvents, Web3Event } from "./blockFetchers/web3";
 import { readFile } from "fs";
 import { List } from "immutable";
 
@@ -16,38 +15,21 @@ export interface Indexers {
 /**
  * runIndexer starts a loop for each chain's network.
  */
-export const runIndexer = (
+export const runIndexer = async (
     connection: Connection,
-    initialize: boolean
-): Indexers => {
-    // const testnetSync = new NetworkSync();
-    const networkSync = new NetworkSync(true);
-
+    initialize: boolean,
+    network: RenVMInstances.Mainnet | RenVMInstances.Testnet
+): Promise<Indexers> => {
     const startIndexers = () => {
-        const testnetVDot2Indexer = new VDot2Indexer(
-            RenVMInstances.Testnet,
-            connection,
-            networkSync
+        const vDot2Indexer = new VDot2Indexer(network, connection);
+        vDot2Indexer.start().catch(CRASH);
+        const vDot3Indexer = new VDot3Indexer(
+            network === "testnet"
+                ? RenVMInstances.TestnetVDot3
+                : RenVMInstances.MainnetVDot3,
+            connection
         );
-        testnetVDot2Indexer.start().catch(CRASH);
-        const mainnetVDot2Indexer = new VDot2Indexer(
-            RenVMInstances.Mainnet,
-            connection,
-            networkSync
-        );
-        mainnetVDot2Indexer.start().catch(CRASH);
-        const testnetVDot3Indexer = new VDot3Indexer(
-            RenVMInstances.TestnetVDot3,
-            connection,
-            networkSync
-        );
-        testnetVDot3Indexer.start().catch(CRASH);
-        const mainnetVDot3Indexer = new VDot3Indexer(
-            RenVMInstances.MainnetVDot3,
-            connection,
-            networkSync
-        );
-        mainnetVDot3Indexer.start().catch(CRASH);
+        vDot3Indexer.start().catch(CRASH);
     };
 
     if (initialize) {
@@ -69,9 +51,7 @@ export const runIndexer = (
     }
 
     return {
-        // [testnetVDot2Indexer.instance]: testnetVDot2Indexer,
-        // [mainnetVDot2Indexer.instance]: mainnetVDot2Indexer,
-        // [testnetVDot3Indexer.instance]: testnetVDot3Indexer,
-        // [mainnetVDot3Indexer.instance]: mainnetVDot3Indexer,
+        // v2: vDot2Indexer,
+        // v3: vDot3Indexer,
     };
 };

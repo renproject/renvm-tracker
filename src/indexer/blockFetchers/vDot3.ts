@@ -5,7 +5,7 @@ import {
     unmarshalMintTx,
 } from "@renproject/rpc/build/main/v2/unmarshal";
 
-import { RenVMInstances } from "../database/models";
+import { RenVMInstances, TimeBlock } from "../../database/models";
 import { Connection } from "typeorm";
 import { CommonBlock, VDot2Indexer } from "./vDot2";
 import {
@@ -15,7 +15,6 @@ import {
 import BigNumber from "bignumber.js";
 import { Moment } from "moment";
 import moment from "moment";
-import { NetworkSync } from "./networkSync";
 
 export class VDot3Indexer extends VDot2Indexer {
     name: "v0.2" | "v0.3" = "v0.3";
@@ -23,12 +22,10 @@ export class VDot3Indexer extends VDot2Indexer {
     BATCH_SIZE = 16;
     // const BATCH_COUNT = 1;
 
-    constructor(
-        instance: RenVMInstances,
-        connection: Connection,
-        networkSync: NetworkSync
-    ) {
-        super(instance, connection, networkSync);
+    constructor(instance: RenVMInstances, connection: Connection) {
+        super(instance, connection);
+
+        this.TimeBlockVersion = TimeBlock;
     }
 
     async connect() {

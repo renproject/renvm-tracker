@@ -8,7 +8,6 @@ import {
     PrimaryGeneratedColumn,
     Unique,
 } from "typeorm";
-import { Mutex } from "async-mutex";
 import { parseV1Selector } from "@renproject/utils";
 
 import { Moment } from "moment";
@@ -22,12 +21,11 @@ import {
     VolumeMap,
     VolumeMapTransformer,
     TokenAmount,
-    BigNumberTransformer,
 } from "./amounts";
 import { List, OrderedMap } from "immutable";
 import { RenVMInstance } from "./RenVMInstance";
-import BigNumber from "bignumber.js";
 import { red, redBright } from "chalk";
+import { TimeBlockV2 } from "./TimeBlockV2";
 
 export enum RenNetwork {
     Mainnet = "mainnet",
@@ -37,18 +35,14 @@ export enum RenNetwork {
 export const TIME_BLOCK_LENGTH = 300;
 
 export interface PartialTimeBlock {
-    mainnetVolumeJSON: VolumeMap;
-    testnetVolumeJSON: VolumeMap;
-    mainnetLockedJSON: VolumeMap;
-    testnetLockedJSON: VolumeMap;
+    volumeJSON: VolumeMap;
+    lockedJSON: VolumeMap;
     pricesJSON: PriceMap;
 }
 
 export const defaultPartialTimeBlock: PartialTimeBlock = {
-    mainnetVolumeJSON: OrderedMap(),
-    testnetVolumeJSON: OrderedMap(),
-    mainnetLockedJSON: OrderedMap(),
-    testnetLockedJSON: OrderedMap(),
+    volumeJSON: OrderedMap(),
+    lockedJSON: OrderedMap(),
     pricesJSON: OrderedMap(),
 };
 
@@ -66,19 +60,11 @@ export class TimeBlock extends BaseEntity implements PartialTimeBlock {
 
     @Field(() => String)
     @Column("varchar", VolumeMapTransformer)
-    mainnetVolumeJSON!: VolumeMap;
+    volumeJSON!: VolumeMap;
 
     @Field(() => String)
     @Column("varchar", VolumeMapTransformer)
-    testnetVolumeJSON!: VolumeMap;
-
-    @Field(() => String)
-    @Column("varchar", VolumeMapTransformer)
-    mainnetLockedJSON!: VolumeMap;
-
-    @Field(() => String)
-    @Column("varchar", VolumeMapTransformer)
-    testnetLockedJSON!: VolumeMap;
+    lockedJSON!: VolumeMap;
 
     @Field(() => String)
     @Column("varchar", PriceMapTransformer)
@@ -86,41 +72,39 @@ export class TimeBlock extends BaseEntity implements PartialTimeBlock {
 
     constructor(
         time: number | undefined,
-        mainnetVolumeJSON: VolumeMap | undefined,
-        testnetVolumeJSON: VolumeMap | undefined,
-        mainnetLockedJSON: VolumeMap | undefined,
-        testnetLockedJSON: VolumeMap | undefined,
+        volumeJSON: VolumeMap | undefined,
+        lockedJSON: VolumeMap | undefined,
         pricesJSON: PriceMap | undefined
     ) {
         super();
         this.timestamp = time ? getTimestamp(time) : 0;
-        this.mainnetVolumeJSON = mainnetVolumeJSON || OrderedMap();
-        this.testnetVolumeJSON = testnetVolumeJSON || OrderedMap();
-        this.mainnetLockedJSON = mainnetLockedJSON || OrderedMap();
-        this.testnetLockedJSON = testnetLockedJSON || OrderedMap();
+        this.volumeJSON = volumeJSON || OrderedMap();
+        this.lockedJSON = lockedJSON || OrderedMap();
         this.pricesJSON = pricesJSON || OrderedMap();
     }
 }
-
-const mutex = new Mutex();
 
 export const getTimestamp = (time: Moment | number): number => {
     const unix = typeof time === "number" ? time : time.unix();
     return unix - (unix % TIME_BLOCK_LENGTH);
 };
 
-export const getTimeBlock = async (timestamp: Moment | number) => {
+export const getTimeBlock = async (
+    TimeBlockVersion: typeof TimeBlock | typeof TimeBlockV2,
+    timestamp: Moment | number
+) => {
     const unixTimestamp =
         typeof timestamp === "number" ? timestamp : timestamp.unix();
 
-    let timeBlock = await TimeBlock.findOne({
+    let timeBlock = await TimeBlockVersion.findOne({
         timestamp: getTimestamp(unixTimestamp),
     });
     if (!timeBlock) {
         // Get latest TimeBlock before timestamp.
         const previousTimeBlock:
             | TimeBlock
-            | undefined = await TimeBlock.findOne({
+            | TimeBlockV2
+            | undefined = await TimeBlockVersion.findOne({
             where: {
                 timestamp: LessThan(unixTimestamp),
             },
@@ -131,16 +115,14 @@ export const getTimeBlock = async (timestamp: Moment | number) => {
 
         console.log(
             red(
-                `Creating new timeblock ${unixTimestamp} based on ${previousTimeBlock?.timestamp}`
+                `Creating new ${TimeBlockVersion.name} ${unixTimestamp} based on ${previousTimeBlock?.timestamp}`
             )
         );
 
-        timeBlock = new TimeBlock(
+        timeBlock = new TimeBlockVersion(
             unixTimestamp,
-            previousTimeBlock ? previousTimeBlock.mainnetVolumeJSON : undefined,
-            previousTimeBlock ? previousTimeBlock.testnetVolumeJSON : undefined,
-            previousTimeBlock ? previousTimeBlock.mainnetLockedJSON : undefined,
-            previousTimeBlock ? previousTimeBlock.testnetLockedJSON : undefined,
+            previousTimeBlock ? previousTimeBlock.volumeJSON : undefined,
+            previousTimeBlock ? previousTimeBlock.volumeJSON : undefined,
             previousTimeBlock ? previousTimeBlock.pricesJSON : undefined
         );
     }
@@ -150,18 +132,14 @@ export const getTimeBlock = async (timestamp: Moment | number) => {
 
 export const addVolume = <T extends PartialTimeBlock>(
     partialTimeBlock: T,
-    network: RenNetwork,
     selector: string,
     amount: TokenAmount,
     tokenPrice: TokenPrice | undefined
 ) => {
-    const volumeKey =
-        network === "mainnet" ? "mainnetVolumeJSON" : "testnetVolumeJSON";
-
-    partialTimeBlock[volumeKey] = partialTimeBlock[volumeKey].set(
+    partialTimeBlock.volumeJSON = partialTimeBlock.volumeJSON.set(
         selector,
         addToTokenAmount(
-            partialTimeBlock[volumeKey].get(selector, TokenAmountZero),
+            partialTimeBlock.volumeJSON.get(selector, TokenAmountZero),
             amount,
             tokenPrice
         )
@@ -172,18 +150,14 @@ export const addVolume = <T extends PartialTimeBlock>(
 
 export const addLocked = <T extends PartialTimeBlock>(
     partialTimeBlock: T,
-    network: RenNetwork,
     selector: string,
     amount: TokenAmount,
     tokenPrice: TokenPrice | undefined
 ) => {
-    const lockedKey =
-        network === "mainnet" ? "mainnetLockedJSON" : "testnetLockedJSON";
-
-    partialTimeBlock[lockedKey] = partialTimeBlock[lockedKey].set(
+    partialTimeBlock.lockedJSON = partialTimeBlock.lockedJSON.set(
         selector,
         addToTokenAmount(
-            partialTimeBlock[lockedKey].get(selector, TokenAmountZero),
+            partialTimeBlock.lockedJSON.get(selector, TokenAmountZero),
             amount,
             tokenPrice,
             true
@@ -195,18 +169,14 @@ export const addLocked = <T extends PartialTimeBlock>(
 
 export const subtractLocked = <T extends PartialTimeBlock>(
     partialTimeBlock: T,
-    network: RenNetwork,
     selector: string,
     amount: TokenAmount,
     tokenPrice: TokenPrice | undefined
 ) => {
-    const lockedKey =
-        network === "mainnet" ? "mainnetLockedJSON" : "testnetLockedJSON";
-
-    partialTimeBlock[lockedKey] = partialTimeBlock[lockedKey].set(
+    partialTimeBlock.lockedJSON = partialTimeBlock.lockedJSON.set(
         selector,
         subtractFromTokenAmount(
-            partialTimeBlock[lockedKey].get(selector, TokenAmountZero),
+            partialTimeBlock.lockedJSON.get(selector, TokenAmountZero),
             amount,
             tokenPrice
         )
@@ -250,34 +220,26 @@ export const parseSelector = (
 
 const updateTimeBlock = (
     timeBlock: TimeBlock,
-    partialTimeBlock: PartialTimeBlock,
-    network: RenNetwork
+    partialTimeBlock: PartialTimeBlock
 ) => {
-    const volumeKey =
-        network === "mainnet" ? "mainnetVolumeJSON" : "testnetVolumeJSON";
-    const lockedKey =
-        network === "mainnet" ? "mainnetLockedJSON" : "testnetLockedJSON";
-
     timeBlock.pricesJSON = timeBlock.pricesJSON.merge(
         partialTimeBlock.pricesJSON
     );
 
-    for (const [selector, amount] of partialTimeBlock[volumeKey]) {
+    for (const [selector, amount] of partialTimeBlock.volumeJSON) {
         const asset = selector.split("/")[0];
         timeBlock = addVolume(
             timeBlock,
-            network,
             selector,
             amount,
             partialTimeBlock.pricesJSON.get(asset, undefined)
         );
     }
 
-    for (const [selector, amount] of partialTimeBlock[lockedKey]) {
+    for (const [selector, amount] of partialTimeBlock.lockedJSON) {
         const asset = selector.split("/")[0];
         timeBlock = addLocked(
             timeBlock,
-            network,
             selector,
             amount,
             partialTimeBlock.pricesJSON.get(asset, undefined)
@@ -288,33 +250,27 @@ const updateTimeBlock = (
 };
 
 export const updateTimeBlocks = async (
+    TimeBlockVersion: typeof TimeBlock | typeof TimeBlockV2,
     partialTimeBlocks: OrderedMap<number, PartialTimeBlock>,
     renVM: RenVMInstance,
     connection: Connection,
     entities: any[]
 ) => {
-    await mutex.acquire();
+    let timeblocks = List<TimeBlock>();
 
-    try {
-        let timeblocks = List<TimeBlock>();
+    for (const [timestamp, partialTimeBlock] of partialTimeBlocks) {
+        const timeblock = updateTimeBlock(
+            await getTimeBlock(TimeBlockVersion, timestamp),
+            partialTimeBlock
+        );
+        timeblocks = timeblocks.push(timeblock);
 
-        for (const [timestamp, partialTimeBlock] of partialTimeBlocks) {
-            const timeblock = updateTimeBlock(
-                await getTimeBlock(timestamp),
-                partialTimeBlock,
-                renVM.network
-            );
-            timeblocks = timeblocks.push(timeblock);
-
-            console.log(redBright(`Writing to block ${timeblock.timestamp}`));
-        }
-
-        await connection.manager.save([
-            ...timeblocks.toArray(),
-            ...entities,
-            renVM,
-        ]);
-    } finally {
-        mutex.release();
+        console.log(redBright(`Writing to block ${timeblock.timestamp}`));
     }
+
+    await connection.manager.save([
+        ...timeblocks.toArray(),
+        ...entities,
+        renVM,
+    ]);
 };

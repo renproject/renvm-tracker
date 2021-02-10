@@ -1,4 +1,6 @@
 import { runDatabase } from "./database/database";
+import { RenVMInstances } from "./database/models/RenVMInstance";
+import { NETWORK } from "./environmentVariables";
 import { runIndexer } from "./indexer/indexer";
 import { runServer } from "./server/server";
 import { CRASH } from "./utils";
@@ -6,13 +8,17 @@ import { CRASH } from "./utils";
 /**
  * Main program function.
  */
-export const main = async (..._args: string[]) => {
-    const { connection, initialize } = await runDatabase();
+export const main = async (
+    network: RenVMInstances.Mainnet | RenVMInstances.Testnet
+) => {
+    console.log(`Network: ${network}`);
 
-    const indexers = runIndexer(connection, initialize);
+    const { connection, initialize } = await runDatabase(network);
+
+    const indexers = await runIndexer(connection, initialize, network);
     runServer(indexers).catch(CRASH);
 };
 
-main(...process.argv)
+main(NETWORK)
     .then((ret) => ((ret as any) ? console.log(ret) : null))
     .catch(console.error);

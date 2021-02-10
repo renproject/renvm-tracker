@@ -1,7 +1,7 @@
 import BigNumber from "bignumber.js";
 import { OrderedMap } from "immutable";
 import { ColumnCommonOptions } from "typeorm/decorator/options/ColumnCommonOptions";
-import { applyPrice } from "../../indexer/priceCache";
+import { applyPrice } from "../../indexer/PriceFetcher";
 
 export interface TokenAmount {
     amount: BigNumber;
