@@ -19,7 +19,8 @@ import moment from "moment";
 export class VDot3Indexer extends VDot2Indexer {
     name: "v0.2" | "v0.3" = "v0.3";
 
-    BATCH_SIZE = 16;
+    BATCH_SIZE = 8;
+    BATCH_COUNT = 1;
 
     constructor(instance: RenVMInstances, connection: Connection) {
         super(instance, connection);
