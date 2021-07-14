@@ -246,7 +246,7 @@ export class VDot2Indexer extends IndexerClass<
                                 ((tx.out as any).revert === undefined ||
                                     (tx.out as any).revert === "")
                             ) {
-                                const amount = (tx.out as any).amount;
+                                const amount = tx.in.amount;
 
                                 const previousTimeBlock =
                                     intermediateTimeBlocks.last(undefined);
@@ -335,8 +335,12 @@ export class VDot2Indexer extends IndexerClass<
 
                             // If the transaction doesn't have an `out` value, it
                             // may have been reverted.
-                            if (tx.out && tx.out.revert === undefined) {
-                                const amount = tx.out.amount;
+                            if (
+                                tx.out &&
+                                (tx.out.revert === undefined ||
+                                    tx.out.revert === "")
+                            ) {
+                                const amount = (tx.out as any).amount;
 
                                 const previousTimeBlock =
                                     intermediateTimeBlocks.last(undefined);
