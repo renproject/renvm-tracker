@@ -13,8 +13,8 @@ export const main = async (
 ) => {
     console.log(`Network: ${network}`);
 
-    await resetDatabase(network);
-    return;
+    // await resetDatabase(network);
+    // return;
 
     const { connection, initialize } = await runDatabase(network);
 
