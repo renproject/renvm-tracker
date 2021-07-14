@@ -63,19 +63,13 @@ export class VDot3Indexer extends VDot2Indexer {
         return blocks.map(this.transformBlock);
     };
 
-    transformBlock = (block: any): CommonBlock => ({
-        height: parseInt(block.height),
-        timestamp: moment(
-            new BigNumber(block.timestamp)
-                .div(1000 * 1000)
-                .decimalPlaces(0)
-                .toNumber()
-        ),
-        transactions: Object.keys(block.extrinsics.shardTxs.txs).reduce(
-            (acc, key) => [...acc, ...block.extrinsics.shardTxs.txs[key]],
-            [] as any[]
-        ),
-    });
+    transformBlock = (block: any): CommonBlock => {
+        return {
+            height: parseInt(block.height),
+            timestamp: moment(block.timestamp * 1000),
+            transactions: block.extrinsicTxs,
+        };
+    };
 
     unmarshalBurn = unmarshalBurnTx;
     unmarshalMint = unmarshalMintTx;
