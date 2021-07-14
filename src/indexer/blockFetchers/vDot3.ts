@@ -20,7 +20,6 @@ export class VDot3Indexer extends VDot2Indexer {
     name: "v0.2" | "v0.3" = "v0.3";
 
     BATCH_SIZE = 16;
-    // const BATCH_COUNT = 1;
 
     constructor(instance: RenVMInstances, connection: Connection) {
         super(instance, connection);
@@ -45,8 +44,9 @@ export class VDot3Indexer extends VDot2Indexer {
         client: RenVMProviderVDot2 | RenVMProvider
     ): Promise<CommonBlock> =>
         this.transformBlock(
-            await (await client.queryBlock((undefined as unknown) as number))
-                .block
+            await (
+                await client.queryBlock(undefined as unknown as number)
+            ).block
         );
 
     getNextBatchOfBlocks = async (
@@ -56,8 +56,8 @@ export class VDot3Indexer extends VDot2Indexer {
     ): Promise<CommonBlock[]> => {
         const blocks: ResponseQueryBlocks["blocks"] = (
             await client.queryBlocks(
-                (String(fromBlock) as any) as number,
-                (String(n) as any) as number
+                String(fromBlock) as any as number,
+                String(n) as any as number
             )
         ).blocks;
         return blocks.map(this.transformBlock);

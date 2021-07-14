@@ -3,15 +3,29 @@ import { List } from "immutable";
 import BigNumber from "bignumber.js";
 import { writeFile } from "fs";
 
-const skip = 250000;
+// Mainnet block 88921.
+const timestamp = 1626257405;
+
+const defaultSkip = 250000;
 
 const INFURA_KEY = "51d73bc74964423aab6c3f0ed0565b76";
 
-const mainnet = {
+interface Network {
+    chain: string;
+    from: number;
+    to?: number;
+    network: string;
+    logLimit?: number;
+    gateways: Array<[string, string, string]>;
+    infuraURL: string;
+}
+
+const mainnet: Network = {
     chain: "Ethereum",
     from: 9737055,
-    to: 11676149,
+    to: 12824516, // For timestamp 1626257405.
     network: "mainnet",
+    logLimit: undefined,
     gateways: [
         [
             "BTC",
@@ -32,11 +46,12 @@ const mainnet = {
     infuraURL: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
 };
 
-const mainnetVDot3 = {
+const mainnetVDot3: Network = {
     chain: "Ethereum",
     from: 11156227,
-    to: 11676149,
-    network: "mainnet-v0.3",
+    to: undefined,
+    network: "mainnet",
+    logLimit: undefined,
     gateways: [
         [
             "FIL",
@@ -62,135 +77,137 @@ const mainnetVDot3 = {
     infuraURL: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
 };
 
-const testnet = {
-    chain: "Ethereum",
-    from: 17626072,
-    to: 23054235,
-    network: "testnet",
-    gateways: [
-        [
-            "BTC",
-            "0x0A9ADD98C076448CBcFAcf5E457DA12ddbEF4A8f",
-            "0x55363c0dBf97Ff9C0e31dAfe0fC99d3e9ce50b8A",
-        ],
-        [
-            "ZEC",
-            "0x42805DA220DF1f8a33C16B0DF9CE876B9d416610",
-            "0xAACbB1e7bA99F2Ed6bd02eC96C2F9a52013Efe2d",
-        ],
-        [
-            "BCH",
-            "0x618dC53e856b1A601119F2Fed5F1E873bCf7Bd6e",
-            "0x9827c8a66a2259fd926E7Fd92EA8DF7ed1D813b1",
-        ],
-    ],
-    infuraURL: `https://kovan.infura.io/v3/${INFURA_KEY}`,
-};
+// const testnet: Network = {
+//     chain: "Ethereum",
+//     from: 17626072,
+//     to: 23054235,
+//     network: "testnet",
+//     gateways: [
+//         [
+//             "BTC",
+//             "0x0A9ADD98C076448CBcFAcf5E457DA12ddbEF4A8f",
+//             "0x55363c0dBf97Ff9C0e31dAfe0fC99d3e9ce50b8A",
+//         ],
+//         [
+//             "ZEC",
+//             "0x42805DA220DF1f8a33C16B0DF9CE876B9d416610",
+//             "0xAACbB1e7bA99F2Ed6bd02eC96C2F9a52013Efe2d",
+//         ],
+//         [
+//             "BCH",
+//             "0x618dC53e856b1A601119F2Fed5F1E873bCf7Bd6e",
+//             "0x9827c8a66a2259fd926E7Fd92EA8DF7ed1D813b1",
+//         ],
+//     ],
+//     infuraURL: `https://kovan.infura.io/v3/${INFURA_KEY}`,
+// };
 
-const testnetVDot3 = {
-    chain: "Ethereum",
-    from: 7434458,
-    to: 7913592,
-    network: "testnet-v0.3",
-    gateways: [
-        [
-            "BTC",
-            "0x48d7442B9BB36FEe26a81E1b634D1c4f75BAe4Ad",
-            "0x1E1A6B5288a6c804aDE4E597Ed8df7064A1d961A",
-        ],
-        [
-            "ZEC",
-            "0xB0b458DeEa6DC99E683B63dAc3a6Ee5Fc1B6f493",
-            "0x0b001a3a329F868dc4EcD5089f027ac6f4108240",
-        ],
-        [
-            "BCH",
-            "0xDD35d74c8EF6981Eb8b01F8F74358Cf667B20Abe",
-            "0xb6eC7Ca09F23612894f8D681cE2Ff8c07BA45D40",
-        ],
-        [
-            "DGB",
-            "0xA6ABf9562874fec05aEDDd9426757af9d89cEE89",
-            "0x17D013fBf38187D97B64512E4999e8F062A7d777",
-        ],
-        [
-            "DOGE",
-            "0x40fC71314361CAE71Ce340851D37553FE478B9A3",
-            "0xe6233D686eF2B346e98031af8b9e55831C57D74C",
-        ],
-        [
-            "BNB",
-            "0x12640903Fc6aD421e610259e93280edB123FB54d",
-            "0x39c268e728Fce3fDc75534c7641FdE2024445B49",
-        ],
-        [
-            "FIL",
-            "0x5fF7E913Cd7504F965c16daBA7e335e0e3Ee5409",
-            "0xaD38ED4AF98b2159cD8A399FAeF863690510b8B5",
-        ],
-        [
-            "LUNA",
-            "0x77F710CCc6190b398792dCcC1755c514a3B18E56",
-            "0x8f5d51E75131838A463be28c0D4E24c578eA289f",
-        ],
-    ],
-    infuraURL: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
-};
+// const testnetVDot3: Network = {
+//     chain: "Ethereum",
+//     from: 7434458,
+//     to: 7913592,
+//     network: "testnet-v0.3",
+//     gateways: [
+//         [
+//             "BTC",
+//             "0x48d7442B9BB36FEe26a81E1b634D1c4f75BAe4Ad",
+//             "0x1E1A6B5288a6c804aDE4E597Ed8df7064A1d961A",
+//         ],
+//         [
+//             "ZEC",
+//             "0xB0b458DeEa6DC99E683B63dAc3a6Ee5Fc1B6f493",
+//             "0x0b001a3a329F868dc4EcD5089f027ac6f4108240",
+//         ],
+//         [
+//             "BCH",
+//             "0xDD35d74c8EF6981Eb8b01F8F74358Cf667B20Abe",
+//             "0xb6eC7Ca09F23612894f8D681cE2Ff8c07BA45D40",
+//         ],
+//         [
+//             "DGB",
+//             "0xA6ABf9562874fec05aEDDd9426757af9d89cEE89",
+//             "0x17D013fBf38187D97B64512E4999e8F062A7d777",
+//         ],
+//         [
+//             "DOGE",
+//             "0x40fC71314361CAE71Ce340851D37553FE478B9A3",
+//             "0xe6233D686eF2B346e98031af8b9e55831C57D74C",
+//         ],
+//         [
+//             "BNB",
+//             "0x12640903Fc6aD421e610259e93280edB123FB54d",
+//             "0x39c268e728Fce3fDc75534c7641FdE2024445B49",
+//         ],
+//         [
+//             "FIL",
+//             "0x5fF7E913Cd7504F965c16daBA7e335e0e3Ee5409",
+//             "0xaD38ED4AF98b2159cD8A399FAeF863690510b8B5",
+//         ],
+//         [
+//             "LUNA",
+//             "0x77F710CCc6190b398792dCcC1755c514a3B18E56",
+//             "0x8f5d51E75131838A463be28c0D4E24c578eA289f",
+//         ],
+//     ],
+//     infuraURL: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
+// };
 
-const bscTestnet = {
-    chain: "BinanceSmartChain",
-    from: 3104702,
-    to: 5488028,
-    network: "testnet-v0.3",
-    gateways: [
-        [
-            "BTC",
-            "0x5eB4F537889eC3C7Ec397F1acB33c70D8C0ee438",
-            "0x6003FD1C2d4eeDed7cb5E89923AB457d1DE5cE89",
-        ],
-        [
-            "DOGE",
-            "0xAF787a25241c69ae213A8Ee08a2518D858b32dBd",
-            "0x7517FadFA7247ffe52d57c78780FfF0662a09936",
-        ],
-        [
-            "ETH",
-            "0xdE0316Db06e3AA5F3291850694543aEA928E72Ca",
-            "0x18E12421fdD63220e2A0A34497724431b1a829f4",
-        ],
-        [
-            "ZEC",
-            "0xD566bB681a231f5648D7cB0f09A89cb47fd09513",
-            "0x00E094aff24746196Bf73491A4C276fa4db503b4",
-        ],
-        [
-            "BCH",
-            "0xE980BC9e17094EB273c6b5A1139b3A30EcdF05e0",
-            "0xBA7236b2fbe3F12Df15a0d5fcE57d891016822f8",
-        ],
-        [
-            "DGB",
-            "0x8C0248Ab26FcD6868Cc5aaea954f0ce28F8E103f",
-            "0xd5E7d585D471BaFF2060dAFeaf701ff89114e439",
-        ],
-        [
-            "FIL",
-            "0xD43DaA686Ea5b20fACaD7945a0eA1187f412958f",
-            "0x36C0B3C9531B558055c8237E730e4f618d238Cb7",
-        ],
-        [
-            "LUNA",
-            "0x2c82a39549858A0fF1a369D84695D983791d0786",
-            "0x26f4F36A070190Ee4379241DD1463A420768EB4B",
-        ],
-    ],
-    infuraURL: "https://data-seed-prebsc-1-s1.binance.org:8545",
-};
+// const bscTestnet: Network = {
+//     chain: "BinanceSmartChain",
+//     from: 3104702,
+//     to: 5488028,
+//     logLimit: 5000,
+//     network: "testnet-v0.3",
+//     gateways: [
+//         [
+//             "BTC",
+//             "0x5eB4F537889eC3C7Ec397F1acB33c70D8C0ee438",
+//             "0x6003FD1C2d4eeDed7cb5E89923AB457d1DE5cE89",
+//         ],
+//         [
+//             "DOGE",
+//             "0xAF787a25241c69ae213A8Ee08a2518D858b32dBd",
+//             "0x7517FadFA7247ffe52d57c78780FfF0662a09936",
+//         ],
+//         [
+//             "ETH",
+//             "0xdE0316Db06e3AA5F3291850694543aEA928E72Ca",
+//             "0x18E12421fdD63220e2A0A34497724431b1a829f4",
+//         ],
+//         [
+//             "ZEC",
+//             "0xD566bB681a231f5648D7cB0f09A89cb47fd09513",
+//             "0x00E094aff24746196Bf73491A4C276fa4db503b4",
+//         ],
+//         [
+//             "BCH",
+//             "0xE980BC9e17094EB273c6b5A1139b3A30EcdF05e0",
+//             "0xBA7236b2fbe3F12Df15a0d5fcE57d891016822f8",
+//         ],
+//         [
+//             "DGB",
+//             "0x8C0248Ab26FcD6868Cc5aaea954f0ce28F8E103f",
+//             "0xd5E7d585D471BaFF2060dAFeaf701ff89114e439",
+//         ],
+//         [
+//             "FIL",
+//             "0xD43DaA686Ea5b20fACaD7945a0eA1187f412958f",
+//             "0x36C0B3C9531B558055c8237E730e4f618d238Cb7",
+//         ],
+//         [
+//             "LUNA",
+//             "0x2c82a39549858A0fF1a369D84695D983791d0786",
+//             "0x26f4F36A070190Ee4379241DD1463A420768EB4B",
+//         ],
+//     ],
+//     infuraURL: "https://data-seed-prebsc-1-s1.binance.org:8545",
+// };
 
-const bscMainnet = {
+const bscMainnet: Network = {
     chain: "BinanceSmartChain",
     from: 2132424,
-    to: 4084072,
+    to: undefined,
+    logLimit: 5000,
     network: "mainnet-v0.3",
     gateways: [
         [
@@ -242,27 +259,54 @@ const getLogs = async (web3: Web3, params) => {
     }
 };
 
+const getBlockBeforeTimestamp = async (web3: Web3, timestamp: number) => {
+    let earliestBlockNumber = 0;
+    let latestBlockNumber = await web3.eth.getBlockNumber();
+
+    console.log(`Finding latest block with timestamp <= ${timestamp}.`);
+
+    while (true) {
+        let currentBlock = Math.floor(
+            (latestBlockNumber - earliestBlockNumber) / 2 + earliestBlockNumber
+        );
+        console.log([earliestBlockNumber, currentBlock, latestBlockNumber]);
+        let currentTimestamp = parseInt(
+            (await web3.eth.getBlock(currentBlock)).timestamp.toString(),
+            10
+        );
+        let nextTimestamp = parseInt(
+            (await web3.eth.getBlock(currentBlock + 1)).timestamp.toString(),
+            10
+        );
+
+        if (currentTimestamp <= timestamp && nextTimestamp > timestamp) {
+            return currentBlock;
+        } else if (currentTimestamp < timestamp) {
+            earliestBlockNumber = currentBlock;
+        } else {
+            latestBlockNumber = currentBlock;
+        }
+    }
+};
+
 const main = async () => {
     let eventArray = List();
 
     for (const networkDetails of [
         mainnet,
         mainnetVDot3,
-        testnet,
-        testnetVDot3,
-        bscTestnet,
-        bscMainnet,
+        // testnet,
+        // testnetVDot3,
+        // bscTestnet,
+        // bscMainnet,
     ]) {
-        const {
-            chain,
-            from,
-            to,
-            network,
-            gateways,
-            infuraURL,
-        } = networkDetails;
+        let { chain, from, to, network, gateways, infuraURL } = networkDetails;
 
         const web3 = new Web3(infuraURL);
+
+        if (!to) {
+            to = await getBlockBeforeTimestamp(web3, timestamp);
+        }
 
         const toTimestamp = new BigNumber(
             (await web3.eth.getBlock(to)).timestamp
@@ -277,6 +321,8 @@ const main = async () => {
         let count = 0;
 
         let total = new BigNumber(0);
+
+        const skip = networkDetails.logLimit || defaultSkip;
 
         for (let i = from; i < to; i += skip) {
             let trades = List();
@@ -403,7 +449,7 @@ const main = async () => {
     const fileString = JSON.stringify(eventArray.toJSON());
 
     // write file to disk
-    writeFile("./out.json", fileString, "utf8", (err) => {
+    writeFile("./src/indexer/final.json", fileString, "utf8", (err) => {
         if (err) {
             console.log(`Error writing file: ${err}`);
         } else {

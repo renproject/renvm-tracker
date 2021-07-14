@@ -12,15 +12,8 @@ export const initializeDatabase = async (
                 RenVMInstances.Mainnet,
                 RenNetwork.Mainnet
             );
-            mainnet.syncedBlock = 35897837;
+            mainnet.syncedBlock = 88921;
             await mainnet.save();
-
-            const mainnetVDot3 = new RenVMInstance(
-                RenVMInstances.MainnetVDot3,
-                RenNetwork.Mainnet
-            );
-            mainnetVDot3.syncedBlock = 665738;
-            await mainnetVDot3.save();
 
             break;
         case RenVMInstances.Testnet:
@@ -78,4 +71,23 @@ export const runDatabase = async (
     console.log("Connected.");
 
     return { connection, initialize };
+};
+
+export const resetDatabase = async (
+    NETWORK: RenVMInstances.Mainnet | RenVMInstances.Testnet
+) => {
+    console.log(`Resetting database...`);
+
+    let connection: Connection;
+    try {
+        connection = await createConnection(typeOrmConfig);
+    } catch (error) {
+        if (/AlreadyHasActiveConnectionError/.exec(error.message)) {
+            // Use existing connection.
+            connection = await getConnection();
+        } else {
+            throw error;
+        }
+    }
+    await connection.dropDatabase();
 };
