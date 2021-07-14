@@ -208,7 +208,7 @@ const bscMainnet: Network = {
     from: 2132424,
     to: undefined,
     logLimit: 5000,
-    network: "mainnet-v0.3",
+    network: "mainnet",
     gateways: [
         [
             "BTC",

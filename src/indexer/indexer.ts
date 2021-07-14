@@ -21,12 +21,12 @@ export const runIndexer = async (
     network: RenVMInstances.Mainnet | RenVMInstances.Testnet
 ): Promise<Indexers> => {
     const startIndexers = () => {
-        const vDot2Indexer = new VDot2Indexer(network, connection);
-        vDot2Indexer.start().catch(CRASH);
+        // const vDot2Indexer = new VDot2Indexer(network, connection);
+        // vDot2Indexer.start().catch(CRASH);
         const vDot3Indexer = new VDot3Indexer(
             network === "testnet"
-                ? RenVMInstances.TestnetVDot3
-                : RenVMInstances.MainnetVDot3,
+                ? RenVMInstances.Testnet
+                : RenVMInstances.Mainnet,
             connection
         );
         vDot3Indexer.start().catch(CRASH);
