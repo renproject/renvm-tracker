@@ -243,41 +243,43 @@ export class VDot2Indexer extends IndexerClass<
                             // Check that the transaction wasn't reverted.
                             if (
                                 tx.out &&
-                                (tx.out as any).revert === undefined
+                                ((tx.out as any).revert === undefined ||
+                                    (tx.out as any).revert === "")
                             ) {
-                                const amount = tx.in.amount;
+                                const amount = (tx.out as any).amount;
 
-                                const previousTimeBlock = intermediateTimeBlocks.last(
-                                    undefined
-                                );
-                                intermediateTimeBlock.pricesJSON = intermediateTimeBlock.pricesJSON.set(
-                                    asset,
-                                    {
-                                        decimals: 0,
-                                        priceInEth: 0,
-                                        priceInBtc: 0,
-                                        priceInUsd: 0,
-                                        ...(previousTimeBlock
-                                            ? previousTimeBlock.pricesJSON.get(
-                                                  asset,
-                                                  undefined
-                                              )
-                                            : undefined),
-                                        ...intermediateTimeBlock.pricesJSON.get(
-                                            asset,
-                                            undefined
-                                        ),
-                                        ...(await getTokenPrice(
-                                            asset,
-                                            timestamp
-                                        )),
-                                    }
-                                );
+                                const previousTimeBlock =
+                                    intermediateTimeBlocks.last(undefined);
+                                intermediateTimeBlock.pricesJSON =
+                                    intermediateTimeBlock.pricesJSON.set(
+                                        asset,
+                                        {
+                                            decimals: 0,
+                                            priceInEth: 0,
+                                            priceInBtc: 0,
+                                            priceInUsd: 0,
+                                            ...(previousTimeBlock
+                                                ? previousTimeBlock.pricesJSON.get(
+                                                      asset,
+                                                      undefined
+                                                  )
+                                                : undefined),
+                                            ...intermediateTimeBlock.pricesJSON.get(
+                                                asset,
+                                                undefined
+                                            ),
+                                            ...(await getTokenPrice(
+                                                asset,
+                                                timestamp
+                                            )),
+                                        }
+                                    );
 
-                                const tokenPrice = intermediateTimeBlock.pricesJSON.get(
-                                    asset,
-                                    undefined
-                                );
+                                const tokenPrice =
+                                    intermediateTimeBlock.pricesJSON.get(
+                                        asset,
+                                        undefined
+                                    );
                                 const amountWithPrice = applyPrice(
                                     new BigNumber(amount),
                                     tokenPrice
@@ -336,37 +338,38 @@ export class VDot2Indexer extends IndexerClass<
                             if (tx.out && tx.out.revert === undefined) {
                                 const amount = tx.out.amount;
 
-                                const previousTimeBlock = intermediateTimeBlocks.last(
-                                    undefined
-                                );
-                                intermediateTimeBlock.pricesJSON = intermediateTimeBlock.pricesJSON.set(
-                                    asset,
-                                    {
-                                        decimals: 0,
-                                        priceInEth: 0,
-                                        priceInBtc: 0,
-                                        priceInUsd: 0,
-                                        ...(previousTimeBlock
-                                            ? previousTimeBlock.pricesJSON.get(
-                                                  asset,
-                                                  undefined
-                                              )
-                                            : undefined),
-                                        ...intermediateTimeBlock.pricesJSON.get(
-                                            asset,
-                                            undefined
-                                        ),
-                                        ...(await getTokenPrice(
-                                            asset,
-                                            timestamp
-                                        )),
-                                    }
-                                );
+                                const previousTimeBlock =
+                                    intermediateTimeBlocks.last(undefined);
+                                intermediateTimeBlock.pricesJSON =
+                                    intermediateTimeBlock.pricesJSON.set(
+                                        asset,
+                                        {
+                                            decimals: 0,
+                                            priceInEth: 0,
+                                            priceInBtc: 0,
+                                            priceInUsd: 0,
+                                            ...(previousTimeBlock
+                                                ? previousTimeBlock.pricesJSON.get(
+                                                      asset,
+                                                      undefined
+                                                  )
+                                                : undefined),
+                                            ...intermediateTimeBlock.pricesJSON.get(
+                                                asset,
+                                                undefined
+                                            ),
+                                            ...(await getTokenPrice(
+                                                asset,
+                                                timestamp
+                                            )),
+                                        }
+                                    );
 
-                                const tokenPrice = intermediateTimeBlock.pricesJSON.get(
-                                    asset,
-                                    undefined
-                                );
+                                const tokenPrice =
+                                    intermediateTimeBlock.pricesJSON.get(
+                                        asset,
+                                        undefined
+                                    );
                                 const amountWithPrice = applyPrice(
                                     new BigNumber(amount),
                                     tokenPrice
@@ -462,7 +465,7 @@ export class VDot2Indexer extends IndexerClass<
         client: RenVMProvider | RenVMProviderVDot3
     ): Promise<CommonBlock> =>
         this.transformBlock(
-            (await client.queryBlock((undefined as unknown) as number)).block
+            (await client.queryBlock(undefined as unknown as number)).block
         );
 
     getNextBatchOfBlocks = async (

@@ -67,12 +67,13 @@ export const processEvents = async (events: List<Web3Event>) => {
         const time = moment(event.timestamp * 1000);
         const timestamp = getTimestamp(moment(event.timestamp * 1000));
 
-        const network = event.network.split("-")[0] as RenNetwork;
+        // const network = event.network.split("-")[0] as RenNetwork;
 
         const price = await getTokenPrice(event.symbol, time);
 
-        const TimeBlockClass =
-            network.slice(-4) === "v0.3" ? TimeBlock : TimeBlockV2;
+        // const TimeBlockClass =
+        //     event.network.slice(-4) === "v0.3" ? TimeBlockV2 : TimeBlock;
+        const TimeBlockClass = TimeBlock;
 
         let timeBlock: TimeBlock = nextTimeBlock
             ? nextTimeBlock

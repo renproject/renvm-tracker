@@ -101,17 +101,15 @@ export const getTimeBlock = async (
     });
     if (!timeBlock) {
         // Get latest TimeBlock before timestamp.
-        const previousTimeBlock:
-            | TimeBlock
-            | TimeBlockV2
-            | undefined = await TimeBlockVersion.findOne({
-            where: {
-                timestamp: LessThan(unixTimestamp),
-            },
-            order: {
-                timestamp: "DESC",
-            },
-        });
+        const previousTimeBlock: TimeBlock | TimeBlockV2 | undefined =
+            await TimeBlockVersion.findOne({
+                where: {
+                    timestamp: LessThan(unixTimestamp),
+                },
+                order: {
+                    timestamp: "DESC",
+                },
+            });
 
         console.log(
             red(
@@ -122,7 +120,7 @@ export const getTimeBlock = async (
         timeBlock = new TimeBlockVersion(
             unixTimestamp,
             previousTimeBlock ? previousTimeBlock.volumeJSON : undefined,
-            previousTimeBlock ? previousTimeBlock.volumeJSON : undefined,
+            previousTimeBlock ? previousTimeBlock.lockedJSON : undefined,
             previousTimeBlock ? previousTimeBlock.pricesJSON : undefined
         );
     }
