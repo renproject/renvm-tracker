@@ -341,18 +341,18 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                                     );
                                 }
 
-                                saveQueue.push(
-                                    new Transaction(
-                                        token,
-                                        new BigNumber(amount)
-                                            .negated()
-                                            .toFixed(),
-                                        renvmState.network,
-                                        this.instance,
-                                        timestamp.unix(),
-                                        block.height
-                                    )
-                                );
+                                // saveQueue.push(
+                                //     new Transaction(
+                                //         token,
+                                //         new BigNumber(amount)
+                                //             .negated()
+                                //             .toFixed(),
+                                //         renvmState.network,
+                                //         this.instance,
+                                //         timestamp.unix(),
+                                //         block.height
+                                //     )
+                                // );
                             }
                         } else if (mintOrBurn === MintOrBurn.MINT) {
                             // Mint
@@ -426,16 +426,16 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                                     );
                                 }
 
-                                saveQueue.push(
-                                    new Transaction(
-                                        token,
-                                        amount,
-                                        renvmState.network,
-                                        this.instance,
-                                        timestamp.unix(),
-                                        block.height
-                                    )
-                                );
+                                // saveQueue.push(
+                                //     new Transaction(
+                                //         token,
+                                //         amount,
+                                //         renvmState.network,
+                                //         this.instance,
+                                //         timestamp.unix(),
+                                //         block.height
+                                //     )
+                                // );
                             }
                         } else {
                             console.error(

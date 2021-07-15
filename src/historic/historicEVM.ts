@@ -198,13 +198,15 @@ export const getHistoricEVMEvents = async (
 
     console.info(`Fetching events up until ${to}.`);
 
+    const blocksToEstimateBlocktime = 1000;
     const toTimestamp = new BigNumber(
         (await web3.eth.getBlock(to)).timestamp
     ).toNumber();
-    const timestamp1000BlocksAgo = new BigNumber(
-        (await web3.eth.getBlock(to - 1000)).timestamp
+    const timestampNBlocksAgo = new BigNumber(
+        (await web3.eth.getBlock(to - blocksToEstimateBlocktime)).timestamp
     ).toNumber();
-    const blockTime = (toTimestamp - timestamp1000BlocksAgo) / (to - 1000);
+    const blockTime =
+        (toTimestamp - timestampNBlocksAgo) / blocksToEstimateBlocktime;
 
     console.info(`Estimating block time as ${blockTime}s.`);
 
