@@ -155,7 +155,7 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
 
             // Database progress is saved in check-points, so entries that need
             // to be saved should be added to this.
-            let saveQueue = [];
+            let saveQueue: any[] = [];
 
             let latestProcessedHeight = syncedHeight;
             for (let i = syncedHeight; i <= toBlock; i += this.BATCH_SIZE) {
