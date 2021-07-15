@@ -41,7 +41,7 @@ export const runDatabase = async (
     connection: Connection;
     initialize: boolean;
 }> => {
-    console.log(`Connecting to database...`);
+    console.info(`Connecting to database...`);
 
     let connection: Connection;
     try {
@@ -68,7 +68,7 @@ export const runDatabase = async (
         console.error(error);
     }
 
-    console.log("Connected.");
+    console.info("Connected.");
 
     return { connection, initialize };
 };
@@ -76,7 +76,7 @@ export const runDatabase = async (
 export const resetDatabase = async (
     NETWORK: RenVMInstances.Mainnet | RenVMInstances.Testnet
 ) => {
-    console.log(`Resetting database...`);
+    console.info(`Resetting database...`);
 
     let connection: Connection;
     try {

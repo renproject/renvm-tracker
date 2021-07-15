@@ -14,11 +14,11 @@ export interface Indexers {
 /**
  * runIndexer starts a loop for each chain's network.
  */
-export const runIndexer = async (
+export const runIndexer = (
     connection: Connection,
     initialize: boolean,
     network: RenVMInstances.Mainnet | RenVMInstances.Testnet
-): Promise<Indexers> => {
+): void => {
     const startIndexers = () => {
         const renVMIndexer = new RenVMIndexer(
             network === "testnet"
@@ -46,8 +46,4 @@ export const runIndexer = async (
     } else {
         startIndexers();
     }
-
-    return {
-        // v3: renVMIndexer,
-    };
 };

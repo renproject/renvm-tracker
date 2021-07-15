@@ -367,7 +367,7 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                             if (
                                 tx.out &&
                                 (tx.out.revert === undefined ||
-                                    tx.out.revert === "")
+                                    (tx.out.revert as any) === "")
                             ) {
                                 const amount = (tx.out as any).amount;
 

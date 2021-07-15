@@ -18,8 +18,8 @@ export const main = async (
 
     const { connection, initialize } = await runDatabase(network);
 
-    const indexers = await runIndexer(connection, initialize, network);
-    runServer(indexers).catch(CRASH);
+    await runIndexer(connection, initialize, network);
+    runServer().catch(CRASH);
 };
 
 main(NETWORK)

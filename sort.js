@@ -1,22 +1,35 @@
-
-
 const { List } = require("immutable");
-const fs = require("fs");
+const { writeFile, readFile } = require("fs");
 
-fs.readFile("out.json", "utf-8", (err, data) => {
-  if (err) {
-      throw err;
-  }
+const OUTPUT_FILE = "src/indexer/final-sorted.json";
 
-  const json = JSON.parse(data);
-  let list = List(json);
-  list = list.sortBy(x => x.timestamp);
-  
-  let count = 0;
-  for (const trade of list) {
-    console.log(JSON.stringify(trade), ",");
-    count++;
-  }
+readFile("src/indexer/final-unsorted.json", "utf-8", (err, data) => {
+    if (err) {
+        throw err;
+    }
 
-  console.error(`Processed ${count} trades`);
+    const json = JSON.parse(data);
+    let eventArray = List(json);
+    eventArray = eventArray.sortBy((x) => x.timestamp);
+
+    const fileString = JSON.stringify(eventArray.toJSON());
+
+    console.info(`Writing ${eventArray.size} events to ${OUTPUT_FILE}...`);
+
+    // write file to disk
+    writeFile(OUTPUT_FILE, fileString, "utf8", (err) => {
+        if (err) {
+            console.log(`Error writing file: ${err}`);
+        } else {
+            console.log(`Done! Wrote ${eventArray.size} events.`);
+        }
+    });
+
+    // let count = 0;
+    // for (const trade of list) {
+    //     console.log(JSON.stringify(trade), ",");
+    //     count++;
+    // }
+
+    // console.error(`Processed ${count} trades`);
 });

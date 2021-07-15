@@ -6,10 +6,9 @@ import { buildSchema } from "type-graphql";
 import cors from "cors";
 
 import { PORT } from "../env";
-import { Indexers } from "../indexer/indexer";
 import { Resolvers } from "./schema/Resolvers";
 
-export const runServer = async (_indexers: Indexers) => {
+export const runServer = async () => {
     const schema = await buildSchema({
         resolvers: [Resolvers],
     });
