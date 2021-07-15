@@ -13,7 +13,6 @@ import { applyPrice, getTokenPrice } from "../PriceFetcher";
 import moment from "moment";
 import BigNumber from "bignumber.js";
 import { List } from "immutable";
-import { TimeBlockV2 } from "../../database/models/TimeBlockV2";
 
 export interface Web3Event {
     network: RenVMInstances; // "mainnet-v0.3";
@@ -71,13 +70,9 @@ export const processEvents = async (events: List<Web3Event>) => {
 
         const price = await getTokenPrice(event.symbol, time);
 
-        // const TimeBlockClass =
-        //     event.network.slice(-4) === "v0.3" ? TimeBlockV2 : TimeBlock;
-        const TimeBlockClass = TimeBlock;
-
         let timeBlock: TimeBlock = nextTimeBlock
             ? nextTimeBlock
-            : await getTimeBlock(TimeBlockClass, timestamp);
+            : await getTimeBlock(timestamp);
 
         const rawAmount = new BigNumber(event.amount);
         const isBurn = rawAmount.isNegative();

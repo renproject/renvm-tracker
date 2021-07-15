@@ -39,6 +39,27 @@ export const addToTokenAmount = (
         ? existing.amount.div(new BigNumber(10).exponentiatedBy(price.decimals))
         : null;
 
+    if (price && BigNumber.isBigNumber(shifted) && shifted.isNaN()) {
+        throw new Error(
+            `Invalid volume amount (${
+                (existing.amount.toFixed(), price.decimals)
+            })`
+        );
+    }
+
+    if (price && price.decimals && isNaN(price.decimals)) {
+        throw new Error(`Invalid price decimals (${price.decimals}).`);
+    }
+    if (amount.amountInEth.isNaN()) {
+        throw new Error(`Invalid volume amount 'amountInEth'.`);
+    }
+    if (amount.amountInBtc.isNaN()) {
+        throw new Error(`Invalid volume amount 'amountInBtc'.`);
+    }
+    if (amount.amountInUsd.isNaN()) {
+        throw new Error(`Invalid volume amount 'amountInUsd'.`);
+    }
+
     return {
         amount: existing.amount.plus(amount.amount),
         amountInEth:

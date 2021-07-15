@@ -144,6 +144,14 @@ export const getTokenPrice = async (
             priceInUsd = response.data.market_data.current_price["usd"];
         }
 
+        if (isNaN(priceInEth) || isNaN(priceInBtc) || isNaN(priceInUsd)) {
+            throw new Error(
+                `Invalid prices (${String(priceInEth)}, ${String(
+                    priceInBtc
+                )}, ${String(priceInUsd)})`
+            );
+        }
+
         const tokenPrice: TokenPrice = {
             decimals,
             priceInEth,

@@ -2,8 +2,7 @@ import { Connection } from "typeorm";
 import { RenVMInstances } from "../database/models";
 import { CRASH } from "../utils";
 import { IndexerClass } from "./base";
-import { VDot2Indexer } from "./blockFetchers/vDot2";
-import { VDot3Indexer } from "./blockFetchers/vDot3";
+import { RenVMIndexer } from "./blockFetchers/renVM";
 import { processEvents, Web3Event } from "./blockFetchers/web3";
 import { readFile } from "fs";
 import { List } from "immutable";
@@ -21,15 +20,13 @@ export const runIndexer = async (
     network: RenVMInstances.Mainnet | RenVMInstances.Testnet
 ): Promise<Indexers> => {
     const startIndexers = () => {
-        // const vDot2Indexer = new VDot2Indexer(network, connection);
-        // vDot2Indexer.start().catch(CRASH);
-        const vDot3Indexer = new VDot3Indexer(
+        const renVMIndexer = new RenVMIndexer(
             network === "testnet"
                 ? RenVMInstances.Testnet
                 : RenVMInstances.Mainnet,
             connection
         );
-        vDot3Indexer.start().catch(CRASH);
+        renVMIndexer.start().catch(CRASH);
     };
 
     if (initialize) {
@@ -51,7 +48,6 @@ export const runIndexer = async (
     }
 
     return {
-        // v2: vDot2Indexer,
-        // v3: vDot3Indexer,
+        // v3: renVMIndexer,
     };
 };

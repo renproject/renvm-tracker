@@ -1,45 +1,37 @@
-import { RenVMProvider } from "@renproject/rpc/build/main/v1/renVMProvider";
-import { RenVMProvider as RenVMProviderVDot3 } from "@renproject/rpc/build/main/v2/renVMProvider";
+import BigNumber from "bignumber.js";
+import { blue, cyan, green, yellow } from "chalk";
+import moment, { Moment } from "moment";
+import { Connection } from "typeorm";
+
+import { TxStatus } from "@renproject/interfaces";
 import {
-    RenVMBlock,
-    ResponseQueryBlocks,
     ResponseQueryBurnTx,
     ResponseQueryMintTx,
 } from "@renproject/rpc/build/main/v1/methods";
 import {
+    ResponseQueryBlocks,
+    ResponseQueryTx,
+} from "@renproject/rpc/build/main/v2";
+import { RenVMProvider } from "@renproject/rpc/build/main/v2/renVMProvider";
+import {
     unmarshalBurnTx,
     unmarshalMintTx,
-} from "@renproject/rpc/build/main/v1/unmarshal";
-import {
-    TxStatus,
-    BurnAndReleaseTransaction,
-    LockAndMintTransaction,
-} from "@renproject/interfaces";
+} from "@renproject/rpc/build/main/v2/unmarshal";
 
 import {
     addLocked,
     addVolume,
-    defaultPartialTimeBlock,
+    getTimeBlock,
     getTimestamp,
     MintOrBurn,
     parseSelector,
-    PartialTimeBlock,
     RenVMInstances,
     subtractLocked,
     TimeBlock,
-    updateTimeBlocks,
 } from "../../database/models";
+import { Transaction } from "../../database/models/Transaction";
 import { IndexerClass } from "../base";
 import { applyPrice, getTokenPrice } from "../PriceFetcher";
-import moment, { Moment } from "moment";
-import BigNumber from "bignumber.js";
-import { OrderedMap } from "immutable";
-import { Connection } from "typeorm";
-import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
-import { blue, cyan, green, yellow } from "chalk";
-import { naturalDiff } from "../../utils";
-import { Transaction } from "../../database/models/Transaction";
-import { TimeBlockV2 } from "../../database/models/TimeBlockV2";
 
 export interface CommonBlock<
     T =
@@ -52,21 +44,16 @@ export interface CommonBlock<
     transactions: Array<T>;
 }
 
-export class VDot2Indexer extends IndexerClass<
-    RenVMProvider | RenVMProviderVDot3
-> {
-    name: "v0.2" | "v0.3" = "v0.2";
-
-    BATCH_SIZE = 40;
-    BATCH_COUNT = 100;
-
+export class RenVMIndexer extends IndexerClass<RenVMProvider> {
     latestTimestamp = 0;
 
-    TimeBlockVersion: typeof TimeBlock | typeof TimeBlockV2;
+    name = "v0.3";
+
+    BATCH_SIZE = 16;
+    BATCH_COUNT = 40;
 
     constructor(instance: RenVMInstances, connection: Connection) {
         super(instance, connection);
-        this.TimeBlockVersion = TimeBlockV2;
     }
 
     async connect() {
@@ -82,13 +69,42 @@ export class VDot2Indexer extends IndexerClass<
         return client;
     }
 
+    latestBlock = async (client: RenVMProvider): Promise<CommonBlock> =>
+        this.transformBlock(
+            await (
+                await client.queryBlock(undefined as unknown as number)
+            ).block
+        );
+
+    getNextBatchOfBlocks = async (
+        client: RenVMProvider,
+        fromBlock: number | undefined,
+        n: number
+    ): Promise<CommonBlock[]> => {
+        const blocks: ResponseQueryBlocks["blocks"] = (
+            await client.queryBlocks(
+                String(fromBlock) as any as number,
+                String(n) as any as number
+            )
+        ).blocks;
+        return blocks.map(this.transformBlock);
+    };
+
+    transformBlock = (block: any): CommonBlock => {
+        return {
+            height: parseInt(block.height),
+            timestamp: moment(block.timestamp * 1000),
+            transactions: block.extrinsicTxs,
+        };
+    };
+
+    unmarshalBurn = unmarshalBurnTx;
+    unmarshalMint = unmarshalMintTx;
+
     async loop(client: RenVMProvider) {
         const renvmState = await this.readDatabase();
 
-        // Testnet v0.2 blocks at: 24040, 35506, 36399, 37415
         let syncedHeight: number = renvmState.syncedBlock;
-
-        const currentTimestamp = getTimestamp(moment());
 
         const latestBlock = await this.latestBlock(client);
 
@@ -133,10 +149,12 @@ export class VDot2Indexer extends IndexerClass<
                 )}${latestBlock.height === toBlock ? ` (latest)` : ""}`
             );
 
-            let intermediateTimeBlocks = OrderedMap<number, PartialTimeBlock>();
+            let timeBlock: TimeBlock | undefined;
 
             let setBreak = false;
 
+            // Database progress is saved in check-points, so entries that need
+            // to be saved should be added to this.
             let saveQueue = [];
 
             let latestProcessedHeight = syncedHeight;
@@ -144,7 +162,7 @@ export class VDot2Indexer extends IndexerClass<
                 if (setBreak) {
                     break;
                 }
-                // process.stdout.write(`${i}\r`);
+
                 const latestBlocks = await this.getNextBatchOfBlocks(
                     client,
                     i,
@@ -154,18 +172,42 @@ export class VDot2Indexer extends IndexerClass<
                 );
 
                 for (const block of latestBlocks) {
-                    // console.warn(
-                    //     `[${this.name.toLowerCase()}][${
-                    //         renvmState.network
-                    //     }] Processing block #${blue(block.height)}`
-                    // );
+                    const timestamp = block.timestamp;
 
-                    latestProcessedHeight = Math.max(
-                        block.height,
-                        latestProcessedHeight
-                    );
+                    if (
+                        timeBlock &&
+                        timeBlock.timestamp !== getTimestamp(timestamp)
+                    ) {
+                        renvmState.syncedBlock = latestProcessedHeight;
+                        console.warn(
+                            `[${this.name.toLowerCase()}][${
+                                renvmState.network
+                            }] Saving TimeBlock #${blue(
+                                timeBlock.timestamp
+                            )} ${yellow(
+                                `(Locked BTC on Eth: ${timeBlock.lockedJSON
+                                    .get("BTC/Ethereum")
+                                    ?.amount.dividedBy(1e8)
+                                    .toFixed()} BTC)`
+                            )}`
+                        );
+                        await this.connection.manager.save([
+                            timeBlock,
+                            renvmState,
+                            ...saveQueue,
+                        ]);
+                        saveQueue = [];
+                        timeBlock = undefined;
+                    }
 
-                    // process.stdout.write(`${block.height}\r`);
+                    if (block.transactions.length > 0) {
+                        console.warn(
+                            `[${this.name.toLowerCase()}][${
+                                renvmState.network
+                            }] Processing block #${blue(block.height)}`
+                        );
+                    }
+
                     for (let transaction of block.transactions) {
                         const txHash =
                             typeof transaction === "string"
@@ -225,18 +267,14 @@ export class VDot2Indexer extends IndexerClass<
                         }
                         const { asset, token, mintOrBurn } = parsed;
 
-                        const timestamp = block.timestamp;
-
-                        let intermediateTimeBlock = intermediateTimeBlocks.get(
-                            getTimestamp(timestamp),
-                            { ...defaultPartialTimeBlock }
-                        );
+                        timeBlock =
+                            timeBlock || (await getTimeBlock(timestamp));
 
                         if (mintOrBurn === MintOrBurn.BURN) {
                             // Burn
 
                             let tx = this.unmarshalBurn({
-                                tx: transaction as ResponseQueryBurnTx["tx"],
+                                tx: transaction as any, // as ResponseQueryBurnTx["tx"],
                                 txStatus: TxStatus.TxStatusDone,
                             });
 
@@ -248,52 +286,39 @@ export class VDot2Indexer extends IndexerClass<
                             ) {
                                 const amount = tx.in.amount;
 
-                                const previousTimeBlock =
-                                    intermediateTimeBlocks.last(undefined);
-                                intermediateTimeBlock.pricesJSON =
-                                    intermediateTimeBlock.pricesJSON.set(
-                                        asset,
-                                        {
-                                            decimals: 0,
-                                            priceInEth: 0,
-                                            priceInBtc: 0,
-                                            priceInUsd: 0,
-                                            ...(previousTimeBlock
-                                                ? previousTimeBlock.pricesJSON.get(
-                                                      asset,
-                                                      undefined
-                                                  )
-                                                : undefined),
-                                            ...intermediateTimeBlock.pricesJSON.get(
-                                                asset,
-                                                undefined
-                                            ),
-                                            ...(await getTokenPrice(
-                                                asset,
-                                                timestamp
-                                            )),
-                                        }
-                                    );
+                                timeBlock.pricesJSON = timeBlock.pricesJSON.set(
+                                    asset,
+                                    {
+                                        decimals: 0,
+                                        priceInEth: 0,
+                                        priceInBtc: 0,
+                                        priceInUsd: 0,
+                                        ...timeBlock.pricesJSON.get(asset),
+                                        ...(await getTokenPrice(
+                                            asset,
+                                            timestamp
+                                        )),
+                                    }
+                                );
 
-                                const tokenPrice =
-                                    intermediateTimeBlock.pricesJSON.get(
-                                        asset,
-                                        undefined
-                                    );
+                                const tokenPrice = timeBlock.pricesJSON.get(
+                                    asset,
+                                    undefined
+                                );
                                 const amountWithPrice = applyPrice(
                                     new BigNumber(amount),
                                     tokenPrice
                                 );
 
-                                intermediateTimeBlock = await addVolume(
-                                    intermediateTimeBlock,
+                                timeBlock = await addVolume(
+                                    timeBlock,
                                     token,
                                     amountWithPrice,
                                     tokenPrice
                                 );
 
-                                intermediateTimeBlock = await subtractLocked(
-                                    intermediateTimeBlock,
+                                timeBlock = await subtractLocked(
+                                    timeBlock,
                                     token,
                                     amountWithPrice,
                                     tokenPrice
@@ -301,14 +326,18 @@ export class VDot2Indexer extends IndexerClass<
 
                                 if (
                                     this.instance === "mainnet" &&
-                                    asset === "BTC"
+                                    token === "BTC/Ethereum"
                                 ) {
                                     console.log(
                                         `[${this.name.toLowerCase()}][${
                                             renvmState.network
-                                        }] ${mintOrBurn} ${amountWithPrice.amount.div(
-                                            new BigNumber(10).exponentiatedBy(8)
-                                        )} BTC`
+                                        }] ${yellow(
+                                            `${mintOrBurn} ${amountWithPrice.amount.div(
+                                                new BigNumber(
+                                                    10
+                                                ).exponentiatedBy(8)
+                                            )} BTC`
+                                        )}`
                                     );
                                 }
 
@@ -329,7 +358,7 @@ export class VDot2Indexer extends IndexerClass<
                             // Mint
 
                             let tx = this.unmarshalMint({
-                                tx: transaction as ResponseQueryMintTx["tx"],
+                                tx: transaction as any, // as ResponseQueryMintTx["tx"],
                                 txStatus: TxStatus.TxStatusDone,
                             });
 
@@ -342,52 +371,39 @@ export class VDot2Indexer extends IndexerClass<
                             ) {
                                 const amount = (tx.out as any).amount;
 
-                                const previousTimeBlock =
-                                    intermediateTimeBlocks.last(undefined);
-                                intermediateTimeBlock.pricesJSON =
-                                    intermediateTimeBlock.pricesJSON.set(
-                                        asset,
-                                        {
-                                            decimals: 0,
-                                            priceInEth: 0,
-                                            priceInBtc: 0,
-                                            priceInUsd: 0,
-                                            ...(previousTimeBlock
-                                                ? previousTimeBlock.pricesJSON.get(
-                                                      asset,
-                                                      undefined
-                                                  )
-                                                : undefined),
-                                            ...intermediateTimeBlock.pricesJSON.get(
-                                                asset,
-                                                undefined
-                                            ),
-                                            ...(await getTokenPrice(
-                                                asset,
-                                                timestamp
-                                            )),
-                                        }
-                                    );
+                                timeBlock.pricesJSON = timeBlock.pricesJSON.set(
+                                    asset,
+                                    {
+                                        decimals: 0,
+                                        priceInEth: 0,
+                                        priceInBtc: 0,
+                                        priceInUsd: 0,
+                                        ...timeBlock.pricesJSON.get(asset),
+                                        ...(await getTokenPrice(
+                                            asset,
+                                            timestamp
+                                        )),
+                                    }
+                                );
 
-                                const tokenPrice =
-                                    intermediateTimeBlock.pricesJSON.get(
-                                        asset,
-                                        undefined
-                                    );
+                                const tokenPrice = timeBlock.pricesJSON.get(
+                                    asset,
+                                    undefined
+                                );
                                 const amountWithPrice = applyPrice(
                                     new BigNumber(amount),
                                     tokenPrice
                                 );
 
-                                intermediateTimeBlock = await addVolume(
-                                    intermediateTimeBlock,
+                                timeBlock = await addVolume(
+                                    timeBlock,
                                     token,
                                     amountWithPrice,
                                     tokenPrice
                                 );
 
-                                intermediateTimeBlock = await addLocked(
-                                    intermediateTimeBlock,
+                                timeBlock = await addLocked(
+                                    timeBlock,
                                     token,
                                     amountWithPrice,
                                     tokenPrice
@@ -395,7 +411,7 @@ export class VDot2Indexer extends IndexerClass<
 
                                 if (
                                     this.instance === "mainnet" &&
-                                    asset === "BTC"
+                                    token === "BTC/Ethereum"
                                 ) {
                                     console.log(
                                         `[${this.name.toLowerCase()}][${
@@ -426,35 +442,36 @@ export class VDot2Indexer extends IndexerClass<
                                 `Unrecognized selector format ${selector}`
                             );
                         }
-
-                        intermediateTimeBlocks = intermediateTimeBlocks.set(
-                            getTimestamp(timestamp),
-                            intermediateTimeBlock
-                        );
                     }
+
+                    latestProcessedHeight = Math.max(
+                        block.height,
+                        latestProcessedHeight
+                    );
                 }
             }
 
-            if (latestProcessedHeight > renvmState.syncedBlock) {
-                console.error(
+            renvmState.syncedBlock = latestProcessedHeight;
+            if (timeBlock) {
+                console.warn(
                     `[${this.name.toLowerCase()}][${
                         renvmState.network
-                    }] Processed ${blue(
-                        latestProcessedHeight - renvmState.syncedBlock
-                    )} blocks. Saving ${
-                        intermediateTimeBlocks.size
-                    } time blocks.`
+                    }] Saving TimeBlock #${blue(timeBlock.timestamp)} ${yellow(
+                        `(Locked BTC on Eth: ${timeBlock.lockedJSON
+                            .get("BTC/Ethereum")
+                            ?.amount.dividedBy(1e8)
+                            .toFixed()})`
+                    )}`
                 );
+                await this.connection.manager.save([
+                    timeBlock,
+                    renvmState,
+                    ...saveQueue,
+                ]);
+            } else {
+                await this.connection.manager.save([renvmState, ...saveQueue]);
             }
-
-            renvmState.syncedBlock = latestProcessedHeight;
-            await updateTimeBlocks(
-                this.TimeBlockVersion,
-                intermediateTimeBlocks,
-                renvmState,
-                this.connection,
-                []
-            );
+            saveQueue = [];
         } else {
             console.warn(
                 `[${this.name.toLowerCase()}][${
@@ -464,37 +481,4 @@ export class VDot2Indexer extends IndexerClass<
             renvmState.save();
         }
     }
-
-    latestBlock = async (
-        client: RenVMProvider | RenVMProviderVDot3
-    ): Promise<CommonBlock> =>
-        this.transformBlock(
-            (await client.queryBlock(undefined as unknown as number)).block
-        );
-
-    getNextBatchOfBlocks = async (
-        client: RenVMProvider | RenVMProviderVDot3,
-        fromBlock: number | undefined,
-        n: number
-    ): Promise<CommonBlock[]> => {
-        const blocks: ResponseQueryBlocks["blocks"] = (
-            await client.queryBlocks(fromBlock as number, n)
-        ).blocks;
-        return blocks.map(this.transformBlock);
-    };
-
-    transformBlock = (block: RenVMBlock): CommonBlock => ({
-        height: block.header.height,
-        timestamp: moment(
-            new BigNumber(block.header.timestamp).times(1000).toNumber()
-        ),
-        transactions: block.data,
-    });
-
-    unmarshalBurn = unmarshalBurnTx as (
-        response: any
-    ) => BurnAndReleaseTransaction;
-    unmarshalMint = unmarshalMintTx as (
-        response: any
-    ) => LockAndMintTransaction;
 }

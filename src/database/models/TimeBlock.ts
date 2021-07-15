@@ -25,7 +25,6 @@ import {
 import { List, OrderedMap } from "immutable";
 import { RenVMInstance } from "./RenVMInstance";
 import { red, redBright } from "chalk";
-import { TimeBlockV2 } from "./TimeBlockV2";
 
 export enum RenNetwork {
     Mainnet = "mainnet",
@@ -89,20 +88,17 @@ export const getTimestamp = (time: Moment | number): number => {
     return unix - (unix % TIME_BLOCK_LENGTH);
 };
 
-export const getTimeBlock = async (
-    TimeBlockVersion: typeof TimeBlock | typeof TimeBlockV2,
-    timestamp: Moment | number
-) => {
+export const getTimeBlock = async (timestamp: Moment | number) => {
     const unixTimestamp =
         typeof timestamp === "number" ? timestamp : timestamp.unix();
 
-    let timeBlock = await TimeBlockVersion.findOne({
+    let timeBlock = await TimeBlock.findOne({
         timestamp: getTimestamp(unixTimestamp),
     });
     if (!timeBlock) {
         // Get latest TimeBlock before timestamp.
-        const previousTimeBlock: TimeBlock | TimeBlockV2 | undefined =
-            await TimeBlockVersion.findOne({
+        const previousTimeBlock: TimeBlock | undefined =
+            await TimeBlock.findOne({
                 where: {
                     timestamp: LessThan(unixTimestamp),
                 },
@@ -113,11 +109,15 @@ export const getTimeBlock = async (
 
         console.log(
             red(
-                `Creating new ${TimeBlockVersion.name} ${unixTimestamp} based on ${previousTimeBlock?.timestamp}`
+                `Creating new ${TimeBlock.name} ${unixTimestamp} ${
+                    previousTimeBlock
+                        ? `based on ${previousTimeBlock?.timestamp}`
+                        : `(first timeblock!)`
+                }`
             )
         );
 
-        timeBlock = new TimeBlockVersion(
+        timeBlock = new TimeBlock(
             unixTimestamp,
             previousTimeBlock ? previousTimeBlock.volumeJSON : undefined,
             previousTimeBlock ? previousTimeBlock.lockedJSON : undefined,
@@ -214,61 +214,4 @@ export const parseSelector = (
         token: `${asset.toUpperCase()}/${mintChain}`,
         mintOrBurn: isMint ? MintOrBurn.MINT : MintOrBurn.BURN,
     };
-};
-
-const updateTimeBlock = (
-    timeBlock: TimeBlock,
-    partialTimeBlock: PartialTimeBlock
-) => {
-    timeBlock.pricesJSON = timeBlock.pricesJSON.merge(
-        partialTimeBlock.pricesJSON
-    );
-
-    for (const [selector, amount] of partialTimeBlock.volumeJSON) {
-        const asset = selector.split("/")[0];
-        timeBlock = addVolume(
-            timeBlock,
-            selector,
-            amount,
-            partialTimeBlock.pricesJSON.get(asset, undefined)
-        );
-    }
-
-    for (const [selector, amount] of partialTimeBlock.lockedJSON) {
-        const asset = selector.split("/")[0];
-        timeBlock = addLocked(
-            timeBlock,
-            selector,
-            amount,
-            partialTimeBlock.pricesJSON.get(asset, undefined)
-        );
-    }
-
-    return timeBlock;
-};
-
-export const updateTimeBlocks = async (
-    TimeBlockVersion: typeof TimeBlock | typeof TimeBlockV2,
-    partialTimeBlocks: OrderedMap<number, PartialTimeBlock>,
-    renVM: RenVMInstance,
-    connection: Connection,
-    entities: any[]
-) => {
-    let timeblocks = List<TimeBlock>();
-
-    for (const [timestamp, partialTimeBlock] of partialTimeBlocks) {
-        const timeblock = updateTimeBlock(
-            await getTimeBlock(TimeBlockVersion, timestamp),
-            partialTimeBlock
-        );
-        timeblocks = timeblocks.push(timeblock);
-
-        console.log(redBright(`Writing to block ${timeblock.timestamp}`));
-    }
-
-    await connection.manager.save([
-        ...timeblocks.toArray(),
-        ...entities,
-        renVM,
-    ]);
 };

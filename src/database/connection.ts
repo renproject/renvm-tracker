@@ -2,7 +2,6 @@ import { PostgresConnectionOptions } from "typeorm/driver/postgres/PostgresConne
 
 import { DATABASE_URL } from "../env";
 import { RenVMInstance, TimeBlock } from "./models";
-import { TimeBlockV2 } from "./models/TimeBlockV2";
 
 export const typeOrmConfig: PostgresConnectionOptions = {
     type: "postgres",
@@ -16,5 +15,5 @@ export const typeOrmConfig: PostgresConnectionOptions = {
     database: "indexer",
     synchronize: false,
     logging: false,
-    entities: [TimeBlock, TimeBlockV2, RenVMInstance],
+    entities: [TimeBlock, RenVMInstance],
 };
