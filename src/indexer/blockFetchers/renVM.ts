@@ -32,6 +32,8 @@ import {
 import { Transaction } from "../../database/models/Transaction";
 import { IndexerClass } from "../base";
 import { applyPrice, getTokenPrice } from "../PriceFetcher";
+import { DEBUG } from "../../environmentVariables";
+import { TokenAmount } from "../../database/models/amounts";
 
 export interface CommonBlock<
     T =
@@ -141,13 +143,15 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                 syncedHeight + this.BATCH_SIZE * this.BATCH_COUNT - 1
             );
 
-            console.warn(
-                `[${this.name.toLowerCase()}][${
-                    renvmState.network
-                }] Syncing from #${cyan(renvmState.syncedBlock)} to #${cyan(
-                    toBlock
-                )}${latestBlock.height === toBlock ? ` (latest)` : ""}`
-            );
+            if (DEBUG) {
+                console.warn(
+                    `[${this.name.toLowerCase()}][${
+                        renvmState.network
+                    }] Syncing from #${cyan(renvmState.syncedBlock)} to #${cyan(
+                        toBlock
+                    )}${latestBlock.height === toBlock ? ` (latest)` : ""}`
+                );
+            }
 
             let timeBlock: TimeBlock | undefined;
 
@@ -179,18 +183,20 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                         timeBlock.timestamp !== getTimestamp(timestamp)
                     ) {
                         renvmState.syncedBlock = latestProcessedHeight;
-                        console.warn(
-                            `[${this.name.toLowerCase()}][${
-                                renvmState.network
-                            }] Saving TimeBlock #${blue(
-                                timeBlock.timestamp
-                            )} ${yellow(
-                                `(Locked BTC on Eth: ${timeBlock.lockedJSON
-                                    .get("BTC/Ethereum")
-                                    ?.amount.dividedBy(1e8)
-                                    .toFixed()} BTC)`
-                            )}`
-                        );
+                        if (DEBUG) {
+                            console.warn(
+                                `[${this.name.toLowerCase()}][${
+                                    renvmState.network
+                                }] Saving TimeBlock #${blue(
+                                    timeBlock.timestamp
+                                )} ${yellow(
+                                    `(Locked BTC on Eth: ${timeBlock.lockedJSON
+                                        .get("BTC/Ethereum")
+                                        ?.amount.dividedBy(1e8)
+                                        .toFixed()} BTC)`
+                                )}`
+                            );
+                        }
                         await this.connection.manager.save([
                             timeBlock,
                             renvmState,
@@ -201,11 +207,13 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                     }
 
                     if (block.transactions.length > 0) {
-                        console.warn(
-                            `[${this.name.toLowerCase()}][${
-                                renvmState.network
-                            }] Processing block #${blue(block.height)}`
-                        );
+                        if (DEBUG) {
+                            console.warn(
+                                `[${this.name.toLowerCase()}][${
+                                    renvmState.network
+                                }] Processing block #${blue(block.height)}`
+                            );
+                        }
                     }
 
                     for (let transaction of block.transactions) {
@@ -214,13 +222,15 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                                 ? transaction
                                 : transaction.hash;
 
-                        console.warn(
-                            `[${this.name.toLowerCase()}][${
-                                renvmState.network
-                            }] ${green("Processing transaction")} ${cyan(
-                                txHash
-                            )} in block ${block.height}`
-                        );
+                        if (DEBUG) {
+                            console.warn(
+                                `[${this.name.toLowerCase()}][${
+                                    renvmState.network
+                                }] ${green("Processing transaction")} ${cyan(
+                                    txHash
+                                )} in block ${block.height}`
+                            );
+                        }
 
                         if (typeof transaction === "string") {
                             try {
@@ -270,6 +280,10 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                         timeBlock =
                             timeBlock || (await getTimeBlock(timestamp));
 
+                        const btcLockedBefore =
+                            timeBlock.lockedJSON.get("BTC/Ethereum")?.amount;
+
+                        let amountWithPrice: TokenAmount | undefined;
                         if (mintOrBurn === MintOrBurn.BURN) {
                             // Burn
 
@@ -305,7 +319,7 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                                     asset,
                                     undefined
                                 );
-                                const amountWithPrice = applyPrice(
+                                amountWithPrice = applyPrice(
                                     new BigNumber(amount),
                                     tokenPrice
                                 );
@@ -390,7 +404,7 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                                     asset,
                                     undefined
                                 );
-                                const amountWithPrice = applyPrice(
+                                amountWithPrice = applyPrice(
                                     new BigNumber(amount),
                                     tokenPrice
                                 );
@@ -409,23 +423,6 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                                     tokenPrice
                                 );
 
-                                if (
-                                    this.instance === "mainnet" &&
-                                    token === "BTC/Ethereum"
-                                ) {
-                                    console.log(
-                                        `[${this.name.toLowerCase()}][${
-                                            renvmState.network
-                                        }] ${mintOrBurn} ${amountWithPrice.amount
-                                            .div(
-                                                new BigNumber(
-                                                    10
-                                                ).exponentiatedBy(8)
-                                            )
-                                            .toFixed()} BTC`
-                                    );
-                                }
-
                                 // saveQueue.push(
                                 //     new Transaction(
                                 //         token,
@@ -442,27 +439,84 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                                 `Unrecognized selector format ${selector}`
                             );
                         }
+
+                        if (
+                            amountWithPrice &&
+                            this.instance === "mainnet" &&
+                            token === "BTC/Ethereum"
+                        ) {
+                            const btcLockedAfter =
+                                timeBlock.lockedJSON.get(
+                                    "BTC/Ethereum"
+                                )?.amount;
+
+                            console.log(
+                                `[${this.name.toLowerCase()}][${
+                                    renvmState.network
+                                }] ${mintOrBurn} ${amountWithPrice.amount
+                                    .div(new BigNumber(10).exponentiatedBy(8))
+                                    .toFixed()} BTC`,
+                                "before",
+                                btcLockedBefore?.dividedBy(1e18).toFixed(),
+                                "after",
+                                btcLockedAfter?.dividedBy(1e18).toFixed(),
+                                "difference",
+                                btcLockedAfter
+                                    ?.minus(btcLockedBefore || new BigNumber(0))
+                                    .dividedBy(1e18)
+                                    .toFixed()
+                            );
+                        }
                     }
 
                     latestProcessedHeight = Math.max(
                         block.height,
                         latestProcessedHeight
                     );
+
+                    if (timeBlock) {
+                        renvmState.syncedBlock = latestProcessedHeight;
+                        if (DEBUG) {
+                            console.warn(
+                                `[${this.name.toLowerCase()}][${
+                                    renvmState.network
+                                }] Saving TimeBlock #${blue(
+                                    timeBlock.timestamp
+                                )} ${yellow(
+                                    `(Locked BTC on Eth: ${timeBlock.lockedJSON
+                                        .get("BTC/Ethereum")
+                                        ?.amount.dividedBy(1e8)
+                                        .toFixed()} BTC)`
+                                )}`
+                            );
+                        }
+                        await this.connection.manager.save([
+                            timeBlock,
+                            renvmState,
+                            ...saveQueue,
+                        ]);
+                        saveQueue = [];
+                        timeBlock = undefined;
+                    }
                 }
             }
 
             renvmState.syncedBlock = latestProcessedHeight;
             if (timeBlock) {
-                console.warn(
-                    `[${this.name.toLowerCase()}][${
-                        renvmState.network
-                    }] Saving TimeBlock #${blue(timeBlock.timestamp)} ${yellow(
-                        `(Locked BTC on Eth: ${timeBlock.lockedJSON
-                            .get("BTC/Ethereum")
-                            ?.amount.dividedBy(1e8)
-                            .toFixed()})`
-                    )}`
-                );
+                if (DEBUG) {
+                    console.warn(
+                        `[${this.name.toLowerCase()}][${
+                            renvmState.network
+                        }] Saving TimeBlock #${blue(
+                            timeBlock.timestamp
+                        )} ${yellow(
+                            `(Locked BTC on Eth: ${timeBlock.lockedJSON
+                                .get("BTC/Ethereum")
+                                ?.amount.dividedBy(1e8)
+                                .toFixed()})`
+                        )}`
+                    );
+                }
                 await this.connection.manager.save([
                     timeBlock,
                     renvmState,
@@ -473,11 +527,13 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
             }
             saveQueue = [];
         } else {
-            console.warn(
-                `[${this.name.toLowerCase()}][${
-                    renvmState.network
-                }] Already synced up to #${cyan(latestBlock.height)}`
-            );
+            if (DEBUG) {
+                console.warn(
+                    `[${this.name.toLowerCase()}][${
+                        renvmState.network
+                    }] Already synced up to #${cyan(latestBlock.height)}`
+                );
+            }
             renvmState.save();
         }
     }
