@@ -25,6 +25,7 @@ import {
 import { List, OrderedMap } from "immutable";
 import { RenVMInstance } from "./RenVMInstance";
 import { red, redBright } from "chalk";
+import { DEBUG } from "../../environmentVariables";
 
 export enum RenNetwork {
     Mainnet = "mainnet",
@@ -107,15 +108,17 @@ export const getTimeBlock = async (timestamp: Moment | number) => {
                 },
             });
 
-        console.log(
-            red(
-                `Creating new ${TimeBlock.name} ${unixTimestamp} ${
-                    previousTimeBlock
-                        ? `based on ${previousTimeBlock?.timestamp}`
-                        : `(first timeblock!)`
-                }`
-            )
-        );
+        if (DEBUG) {
+            console.log(
+                red(
+                    `Creating new ${TimeBlock.name} ${unixTimestamp} ${
+                        previousTimeBlock
+                            ? `based on ${previousTimeBlock?.timestamp}`
+                            : `(first timeblock!)`
+                    }`
+                )
+            );
+        }
 
         timeBlock = new TimeBlock(
             unixTimestamp,

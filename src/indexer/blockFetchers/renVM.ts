@@ -270,9 +270,11 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                         try {
                             parsed = parseSelector(selector);
                         } catch (error) {
-                            console.warn(
-                                `Unrecognized selector format ${selector}`
-                            );
+                            if (DEBUG) {
+                                console.warn(
+                                    `Unrecognized selector format ${selector}`
+                                );
+                            }
                             continue;
                         }
                         const { asset, token, mintOrBurn } = parsed;
@@ -337,23 +339,6 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                                     amountWithPrice,
                                     tokenPrice
                                 );
-
-                                if (
-                                    this.instance === "mainnet" &&
-                                    token === "BTC/Ethereum"
-                                ) {
-                                    console.log(
-                                        `[${this.name.toLowerCase()}][${
-                                            renvmState.network
-                                        }] ${yellow(
-                                            `${mintOrBurn} ${amountWithPrice.amount.div(
-                                                new BigNumber(
-                                                    10
-                                                ).exponentiatedBy(8)
-                                            )} BTC`
-                                        )}`
-                                    );
-                                }
 
                                 // saveQueue.push(
                                 //     new Transaction(
@@ -457,13 +442,13 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                                     .div(new BigNumber(10).exponentiatedBy(8))
                                     .toFixed()} BTC`,
                                 "before",
-                                btcLockedBefore?.dividedBy(1e18).toFixed(),
+                                btcLockedBefore?.dividedBy(1e8).toFixed(),
                                 "after",
-                                btcLockedAfter?.dividedBy(1e18).toFixed(),
+                                btcLockedAfter?.dividedBy(1e8).toFixed(),
                                 "difference",
                                 btcLockedAfter
                                     ?.minus(btcLockedBefore || new BigNumber(0))
-                                    .dividedBy(1e18)
+                                    .dividedBy(1e8)
                                     .toFixed()
                             );
                         }
