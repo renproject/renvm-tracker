@@ -14,6 +14,7 @@ import { green } from "chalk";
 import { RenNetwork } from "@renproject/interfaces";
 import { HistoricEvent } from "./types";
 import { config } from "dotenv";
+import { writeFile } from "fs";
 config();
 
 // If more than 10000 events are in any set of 250k logs, then this should be
@@ -143,7 +144,8 @@ const getBlockBeforeTimestamp = async (web3: Web3, timestamp: number) => {
 export const getHistoricEVMEvents = async (
     timestamp: number,
     evmNetwork: EVMNetwork,
-    renNetwork: RenNetwork
+    renNetwork: RenNetwork,
+    finalFile: string
 ): Promise<List<HistoricEvent>> => {
     let eventArray = List();
     let { chainClass, gateways } = evmNetwork;
@@ -165,13 +167,13 @@ export const getHistoricEVMEvents = async (
         );
     }
 
-    const publicNode =
-        chainClass.chain === "Polygon" && !networkObject.isTestnet
-            ? "https://multichain.renproject.io/mainnet/polygon"
-            : chainClass.chain === "BinanceSmartChain" &&
-              !networkObject.isTestnet
-            ? "https://multichain.renproject.io/mainnet/bsc"
-            : networkObject.publicProvider({ infura: INFURA_KEY });
+    // const publicNode =
+    //     chainClass.chain === "Polygon" && !networkObject.isTestnet
+    //         ? "https://multichain.renproject.io/mainnet/polygon"
+    //         : chainClass.chain === "BinanceSmartChain" &&
+    //           !networkObject.isTestnet
+    //         ? "https://multichain.renproject.io/mainnet/bsc"
+    const publicNode = networkObject.publicProvider({ infura: INFURA_KEY });
     const web3 = new Web3(publicNode);
 
     const chainObject = new chainClass(
@@ -179,12 +181,12 @@ export const getHistoricEVMEvents = async (
         networkObject
     );
 
-    let skip =
-        chainClass.chain === "Polygon"
-            ? 25000
-            : chainClass.chain === "BinanceSmartChain"
-            ? 25000
-            : 250000; // chainObject.logRequestLimit || defaultSkip;
+    let skip = chainObject.logRequestLimit || defaultSkip;
+    // chainClass.chain === "Polygon"
+    //     ? 25000
+    //     : chainClass.chain === "BinanceSmartChain"
+    //     ? 25000
+    //     : 250000; // chainObject.logRequestLimit || defaultSkip;
 
     console.log(
         `Handling ${evmNetwork.chainClass.chain} (log batch size: ${skip} logs)`
@@ -350,6 +352,23 @@ export const getHistoricEVMEvents = async (
             chainObject.chain
         }: ${total.dividedBy(new BigNumber(10).exponentiatedBy(8))}`
     );
+
+    const fileString = JSON.stringify(eventArray.toJSON());
+
+    console.info(
+        `Writing ${eventArray.size} events to ${
+            finalFile + "-" + chainObject.name
+        }...`
+    );
+
+    // write file to disk
+    writeFile(finalFile + chainObject.name, fileString, "utf8", (err) => {
+        if (err) {
+            console.log(`Error writing file: ${err}`);
+        } else {
+            console.log(`Done! Wrote ${eventArray.size} events.`);
+        }
+    });
 
     return eventArray;
 };

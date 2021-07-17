@@ -3,8 +3,6 @@ import {
     addVolume,
     getTimeBlock,
     getTimestamp,
-    RenNetwork,
-    RenVMInstance,
     RenVMInstances,
     subtractLocked,
     TimeBlock,
@@ -23,21 +21,6 @@ export interface Web3Event {
 }
 
 export const processEvents = async (events: List<Web3Event>) => {
-    // const instances = {
-    //     [RenVMInstances.Mainnet]: await RenVMInstance.findOneOrFail({
-    //         name: RenVMInstances.Mainnet,
-    //     }),
-    //     [RenVMInstances.MainnetVDot3]: await RenVMInstance.findOneOrFail({
-    //         name: RenVMInstances.MainnetVDot3,
-    //     }),
-    //     [RenVMInstances.Testnet]: await RenVMInstance.findOneOrFail({
-    //         name: RenVMInstances.Testnet,
-    //     }),
-    //     [RenVMInstances.TestnetVDot3]: await RenVMInstance.findOneOrFail({
-    //         name: RenVMInstances.TestnetVDot3,
-    //     }),
-    // };
-
     let nextTimeBlock: TimeBlock | null = null;
 
     let total = new BigNumber(0);

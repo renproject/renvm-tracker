@@ -14,10 +14,10 @@ import { getHistoricSolanaEvents, solana } from "./historicSolana";
 
 config();
 
-// Mainnet block 88921.
-const timestamp = 1626257405;
+// Mainnet block 96566.
+const timestamp = 1626375768;
 
-const OUTPUT_FILE = "./src/indexer/final-2.json";
+const OUTPUT_FILE = "./src/indexer/final-96566.json";
 
 const NETWORK = RenNetwork.Mainnet;
 
@@ -26,14 +26,19 @@ const main = async () => {
 
     // EVM chains
     for (const networkDetails of [
-        binanceSmartChain,
-        fantom,
-        avalanche,
-        ethereum,
+        // fantom,
+        // avalanche,
+        // ethereum,
+        // binanceSmartChain,
         polygon,
     ]) {
         eventArray = eventArray.merge(
-            await getHistoricEVMEvents(timestamp, networkDetails, NETWORK)
+            await getHistoricEVMEvents(
+                timestamp,
+                networkDetails,
+                NETWORK,
+                OUTPUT_FILE
+            )
         );
     }
 

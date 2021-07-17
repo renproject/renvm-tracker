@@ -12,7 +12,7 @@ export const initializeDatabase = async (
                 RenVMInstances.Mainnet,
                 RenNetwork.Mainnet
             );
-            mainnet.syncedBlock = 88921;
+            mainnet.syncedBlock = 96566;
             await mainnet.save();
 
             break;

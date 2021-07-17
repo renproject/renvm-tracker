@@ -1,5 +1,5 @@
 import BigNumber from "bignumber.js";
-import { blue, cyan, green, yellow } from "chalk";
+import { blue, cyan, green, yellow, magenta, red } from "chalk";
 import moment, { Moment } from "moment";
 import { Connection } from "typeorm";
 
@@ -425,22 +425,22 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                             );
                         }
 
-                        if (
-                            amountWithPrice &&
-                            this.instance === "mainnet" &&
-                            token === "BTC/Ethereum"
-                        ) {
+                        if (amountWithPrice) {
                             const btcLockedAfter =
-                                timeBlock.lockedJSON.get(
-                                    "BTC/Ethereum"
-                                )?.amount;
+                                timeBlock.lockedJSON.get(token)?.amount;
 
                             console.log(
-                                `[${this.name.toLowerCase()}][${
-                                    renvmState.network
-                                }] ${mintOrBurn} ${amountWithPrice.amount
+                                `[${
+                                    token === "BTC/Ethereum"
+                                        ? yellow(token)
+                                        : cyan(token)
+                                }][${block.height}] ${
+                                    mintOrBurn === MintOrBurn.MINT
+                                        ? green(mintOrBurn)
+                                        : red(mintOrBurn)
+                                } ${amountWithPrice.amount
                                     .div(new BigNumber(10).exponentiatedBy(8))
-                                    .toFixed()} BTC`,
+                                    .toFixed()} ${magenta(asset)}`,
                                 "before",
                                 btcLockedBefore?.dividedBy(1e8).toFixed(),
                                 "after",
