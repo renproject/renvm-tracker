@@ -11,6 +11,7 @@ import { applyPrice, getTokenPrice } from "../PriceFetcher";
 import moment from "moment";
 import BigNumber from "bignumber.js";
 import { List } from "immutable";
+import { TokenPrice } from "../../database/models/amounts";
 
 export interface Web3Event {
     network: RenVMInstances; // "mainnet-v0.3";
@@ -51,7 +52,12 @@ export const processEvents = async (events: List<Web3Event>) => {
 
         // const network = event.network.split("-")[0] as RenNetwork;
 
-        const price = await getTokenPrice(event.symbol, time);
+        let tokenPrice: TokenPrice | undefined = undefined;
+        try {
+            tokenPrice = await getTokenPrice(event.symbol, time);
+        } catch (error) {
+            console.error(tokenPrice);
+        }
 
         let timeBlock: TimeBlock = nextTimeBlock
             ? nextTimeBlock
@@ -61,16 +67,16 @@ export const processEvents = async (events: List<Web3Event>) => {
         const isBurn = rawAmount.isNegative();
         const amount = rawAmount.absoluteValue();
 
-        const tokenAmount = applyPrice(amount, price);
+        const tokenAmount = applyPrice(amount, tokenPrice);
 
         const selector = `${event.symbol.toUpperCase()}/${event.chain}`;
 
-        timeBlock = addVolume(timeBlock, selector, tokenAmount, price);
+        timeBlock = addVolume(timeBlock, selector, tokenAmount, tokenPrice);
         timeBlock = (isBurn ? subtractLocked : addLocked)(
             timeBlock,
             selector,
             tokenAmount,
-            price
+            tokenPrice
         );
 
         // Update price for symbol.
@@ -80,7 +86,7 @@ export const processEvents = async (events: List<Web3Event>) => {
             priceInBtc: 0,
             priceInUsd: 0,
             ...timeBlock.pricesJSON.get(event.symbol, undefined),
-            ...price,
+            ...tokenPrice,
         });
 
         const nextEvent = events.get(i + 1);

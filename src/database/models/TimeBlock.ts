@@ -26,6 +26,7 @@ import { List, OrderedMap } from "immutable";
 import { RenVMInstance } from "./RenVMInstance";
 import { red, redBright } from "chalk";
 import { DEBUG } from "../../environmentVariables";
+import { getTokenPrice } from "../../indexer/PriceFetcher";
 
 export enum RenNetwork {
     Mainnet = "mainnet",
@@ -149,6 +150,38 @@ export const addVolume = <T extends PartialTimeBlock>(
     return partialTimeBlock;
 };
 
+const assertAmountIsValid = (amount: TokenAmount) => {
+    if (amount.amount.isNaN()) {
+        throw new Error(`Invalid volume amount 'amountInEth'.`);
+    }
+    if (amount.amountInEth.isNaN()) {
+        throw new Error(`Invalid volume amount 'amountInEth'.`);
+    }
+    if (amount.amountInBtc.isNaN()) {
+        throw new Error(`Invalid volume amount 'amountInBtc'.`);
+    }
+    if (amount.amountInUsd.isNaN()) {
+        throw new Error(`Invalid volume amount 'amountInUsd'.`);
+    }
+
+    return true;
+};
+
+export const setLocked = <T extends PartialTimeBlock>(
+    partialTimeBlock: T,
+    selector: string,
+    amount: TokenAmount
+) => {
+    assertAmountIsValid(amount);
+
+    partialTimeBlock.lockedJSON = partialTimeBlock.lockedJSON.set(
+        selector,
+        amount
+    );
+
+    return partialTimeBlock;
+};
+
 export const addLocked = <T extends PartialTimeBlock>(
     partialTimeBlock: T,
     selector: string,
@@ -186,6 +219,30 @@ export const subtractLocked = <T extends PartialTimeBlock>(
     return partialTimeBlock;
 };
 
+export const updateTokenPrice = async <T extends PartialTimeBlock>(
+    timeBlock: T,
+    asset: string,
+    timestamp: Moment
+): Promise<T> => {
+    let newTokenPrice: TokenPrice | undefined = undefined;
+    try {
+        newTokenPrice = await getTokenPrice(asset, timestamp);
+    } catch (error) {
+        console.error(newTokenPrice);
+    }
+
+    timeBlock.pricesJSON = timeBlock.pricesJSON.set(asset, {
+        decimals: 0,
+        priceInEth: 0,
+        priceInBtc: 0,
+        priceInUsd: 0,
+        ...timeBlock.pricesJSON.get(asset),
+        ...newTokenPrice,
+    });
+
+    return timeBlock;
+};
+
 export enum MintOrBurn {
     MINT = "MINT",
     BURN = "BURN",
@@ -195,12 +252,13 @@ const v1ChainMap = OrderedMap<string, string>().set("Eth", "Ethereum");
 
 export const parseSelector = (
     selector: string
-): { asset: string; token: string; mintOrBurn: MintOrBurn } => {
+): { asset: string; token: string; chain: string; mintOrBurn: MintOrBurn } => {
     const v2SelectorMatch = /^([A-Z]+)\/(from|to)(.+)$/.exec(selector);
     if (v2SelectorMatch) {
         const [_, asset, toOrFrom, chain] = v2SelectorMatch;
         return {
             asset,
+            chain,
             token: `${asset.toUpperCase()}/${chain}`,
             mintOrBurn: toOrFrom === "to" ? MintOrBurn.MINT : MintOrBurn.BURN,
         };
@@ -214,6 +272,7 @@ export const parseSelector = (
     );
     return {
         asset,
+        chain: mintChain,
         token: `${asset.toUpperCase()}/${mintChain}`,
         mintOrBurn: isMint ? MintOrBurn.MINT : MintOrBurn.BURN,
     };

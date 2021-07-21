@@ -152,6 +152,17 @@ export const getTokenPrice = async (
             );
         }
 
+        if (
+            isNaN(decimals) ||
+            isNaN(priceInEth) ||
+            isNaN(priceInBtc) ||
+            isNaN(priceInUsd)
+        ) {
+            throw new Error(
+                `Invalid token price inside getTokenPrice(${token})`
+            );
+        }
+
         const tokenPrice: TokenPrice = {
             decimals,
             priceInEth,
@@ -173,6 +184,7 @@ export const getTokenPrice = async (
 
         return tokenPrice;
     } catch (error) {
+        console.error(error);
         return undefined;
     }
 };

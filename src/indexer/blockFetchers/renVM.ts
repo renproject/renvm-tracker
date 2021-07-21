@@ -11,12 +11,11 @@ import {
 import {
     ResponseQueryBlocks,
     ResponseQueryTx,
-} from "@renproject/rpc/build/main/v2";
-import { RenVMProvider } from "@renproject/rpc/build/main/v2/renVMProvider";
-import {
+    unmarshalPackValue,
     unmarshalBurnTx,
     unmarshalMintTx,
-} from "@renproject/rpc/build/main/v2/unmarshal";
+} from "@renproject/rpc/build/main/v2";
+import { RenVMProvider } from "@renproject/rpc/build/main/v2/renVMProvider";
 
 import {
     addLocked,
@@ -26,12 +25,14 @@ import {
     MintOrBurn,
     parseSelector,
     RenVMInstances,
+    setLocked,
     subtractLocked,
     TimeBlock,
+    updateTokenPrice,
 } from "../../database/models";
 import { Transaction } from "../../database/models/Transaction";
 import { IndexerClass } from "../base";
-import { applyPrice, getTokenPrice } from "../PriceFetcher";
+import { applyPrice } from "../PriceFetcher";
 import { DEBUG } from "../../environmentVariables";
 import { TokenAmount } from "../../database/models/amounts";
 
@@ -44,6 +45,12 @@ export interface CommonBlock<
     height: number;
     timestamp: Moment;
     transactions: Array<T>;
+}
+
+interface BlockState {
+    [asset: string]: {
+        minted: Array<{ amount: BigNumber; chain: string }>;
+    };
 }
 
 export class RenVMIndexer extends IndexerClass<RenVMProvider> {
@@ -100,6 +107,18 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
         };
     };
 
+    getBlockState = async (client: RenVMProvider): Promise<BlockState> => {
+        const latestBlockState = await client.sendMessage(
+            "ren_queryBlockState" as any,
+            {}
+        );
+
+        return unmarshalPackValue(
+            latestBlockState.state.t,
+            latestBlockState.state.v
+        );
+    };
+
     unmarshalBurn = unmarshalBurnTx;
     unmarshalMint = unmarshalMintTx;
 
@@ -109,6 +128,16 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
         let syncedHeight: number = renvmState.syncedBlock;
 
         const latestBlock = await this.latestBlock(client);
+        // `latestBlockState` doesn't take a block parameter, and there may be a
+        // block created between fetching the latest block and the latest block
+        // state. We fetch the state after so that any transactions in the block
+        // are reflected in the state.
+        let latestBlockState: BlockState | undefined;
+        try {
+            latestBlockState = await this.getBlockState(client);
+        } catch (error) {
+            console.error(error);
+        }
 
         // Detect migration - latest block height has been reset.
         if (syncedHeight > 1 && latestBlock.height < syncedHeight - 1000) {
@@ -214,243 +243,267 @@ export class RenVMIndexer extends IndexerClass<RenVMProvider> {
                                 }] Processing block #${blue(block.height)}`
                             );
                         }
-                    }
 
-                    for (let transaction of block.transactions) {
-                        const txHash =
-                            typeof transaction === "string"
-                                ? transaction
-                                : transaction.hash;
+                        for (let transaction of block.transactions) {
+                            const txHash =
+                                typeof transaction === "string"
+                                    ? transaction
+                                    : transaction.hash;
 
-                        if (DEBUG) {
-                            console.warn(
-                                `[${this.name.toLowerCase()}][${
-                                    renvmState.network
-                                }] ${green("Processing transaction")} ${cyan(
-                                    txHash
-                                )} in block ${block.height}`
-                            );
-                        }
-
-                        if (typeof transaction === "string") {
-                            try {
-                                transaction = (
-                                    await client.queryTx(transaction)
-                                ).tx as any;
-                            } catch (error) {
-                                if (
-                                    /Node returned status 404 with reason: .* not found/.exec(
-                                        error.message
-                                    )
-                                ) {
-                                    console.warn(
-                                        `[${this.name.toLowerCase()}][${
-                                            renvmState.network
-                                        }] Ignoring transaction ${green(
-                                            transaction
-                                        )}`,
-                                        error
-                                    );
-                                    continue;
-                                } else {
-                                    throw error;
-                                }
-                            }
-                        }
-
-                        const selector =
-                            (transaction as ResponseQueryMintTx["tx"]).to ||
-                            (transaction as ResponseQueryTx["tx"]).selector;
-
-                        let parsed: {
-                            asset: string;
-                            token: string;
-                            mintOrBurn: MintOrBurn;
-                        };
-                        try {
-                            parsed = parseSelector(selector);
-                        } catch (error) {
                             if (DEBUG) {
                                 console.warn(
+                                    `[${this.name.toLowerCase()}][${
+                                        renvmState.network
+                                    }] ${green(
+                                        "Processing transaction"
+                                    )} ${cyan(txHash)} in block ${block.height}`
+                                );
+                            }
+
+                            if (typeof transaction === "string") {
+                                try {
+                                    transaction = (
+                                        await client.queryTx(transaction)
+                                    ).tx as any;
+                                } catch (error) {
+                                    if (
+                                        /Node returned status 404 with reason: .* not found/.exec(
+                                            error.message
+                                        )
+                                    ) {
+                                        console.warn(
+                                            `[${this.name.toLowerCase()}][${
+                                                renvmState.network
+                                            }] Ignoring transaction ${green(
+                                                transaction
+                                            )}`,
+                                            error
+                                        );
+                                        continue;
+                                    } else {
+                                        throw error;
+                                    }
+                                }
+                            }
+
+                            const selector =
+                                (transaction as ResponseQueryMintTx["tx"]).to ||
+                                (transaction as ResponseQueryTx["tx"]).selector;
+
+                            let parsed: {
+                                asset: string;
+                                token: string;
+                                chain: string;
+                                mintOrBurn: MintOrBurn;
+                            };
+                            try {
+                                parsed = parseSelector(selector);
+                            } catch (error) {
+                                if (DEBUG) {
+                                    console.warn(
+                                        `Unrecognized selector format ${selector}`
+                                    );
+                                }
+                                continue;
+                            }
+                            const { asset, token, mintOrBurn } = parsed;
+
+                            timeBlock =
+                                timeBlock || (await getTimeBlock(timestamp));
+
+                            const assetLockedBefore =
+                                timeBlock.lockedJSON.get(token)?.amount;
+
+                            const latestLocked =
+                                block.height === latestBlock.height &&
+                                latestBlockState &&
+                                latestBlockState[asset].minted.filter(
+                                    (amount) => amount.chain === parsed.chain
+                                )[0]?.amount;
+
+                            let amountWithPrice: TokenAmount | undefined;
+                            if (mintOrBurn === MintOrBurn.MINT) {
+                                // Mint
+
+                                let tx = this.unmarshalMint({
+                                    tx: transaction as any, // as ResponseQueryMintTx["tx"],
+                                    txStatus: TxStatus.TxStatusDone,
+                                });
+
+                                // If the transaction doesn't have an `out` value, it
+                                // may have been reverted.
+                                if (
+                                    tx.out &&
+                                    (tx.out.revert === undefined ||
+                                        (tx.out.revert as any) === "")
+                                ) {
+                                    const amount = (tx.out as any).amount;
+
+                                    timeBlock = await updateTokenPrice(
+                                        timeBlock,
+                                        asset,
+                                        timestamp
+                                    );
+
+                                    const tokenPrice = timeBlock.pricesJSON.get(
+                                        asset,
+                                        undefined
+                                    );
+                                    amountWithPrice = applyPrice(
+                                        new BigNumber(amount),
+                                        tokenPrice
+                                    );
+
+                                    timeBlock = await addVolume(
+                                        timeBlock,
+                                        token,
+                                        amountWithPrice,
+                                        tokenPrice
+                                    );
+
+                                    if (latestLocked) {
+                                        const latestLockedWithPrice =
+                                            applyPrice(
+                                                new BigNumber(latestLocked),
+                                                tokenPrice
+                                            );
+                                        console.log(
+                                            `!!! Updating ${token} locked amount to ${latestLockedWithPrice.amount.toFixed()} ($${latestLockedWithPrice.amountInUsd.toFixed()}) !!!`
+                                        );
+                                        timeBlock = await setLocked(
+                                            timeBlock,
+                                            token,
+                                            latestLockedWithPrice
+                                        );
+                                    } else {
+                                        timeBlock = await addLocked(
+                                            timeBlock,
+                                            token,
+                                            amountWithPrice,
+                                            tokenPrice
+                                        );
+                                    }
+
+                                    // saveQueue.push(
+                                    //     new Transaction(
+                                    //         token,
+                                    //         amount,
+                                    //         renvmState.network,
+                                    //         this.instance,
+                                    //         timestamp.unix(),
+                                    //         block.height
+                                    //     )
+                                    // );
+                                }
+                            } else if (mintOrBurn === MintOrBurn.BURN) {
+                                // Burn
+
+                                let tx = this.unmarshalBurn({
+                                    tx: transaction as any, // as ResponseQueryBurnTx["tx"],
+                                    txStatus: TxStatus.TxStatusDone,
+                                });
+
+                                // Check that the transaction wasn't reverted.
+                                if (
+                                    tx.out &&
+                                    ((tx.out as any).revert === undefined ||
+                                        (tx.out as any).revert === "")
+                                ) {
+                                    const amount = tx.in.amount;
+
+                                    timeBlock = await updateTokenPrice(
+                                        timeBlock,
+                                        asset,
+                                        timestamp
+                                    );
+
+                                    const tokenPrice = timeBlock.pricesJSON.get(
+                                        asset,
+                                        undefined
+                                    );
+                                    amountWithPrice = applyPrice(
+                                        new BigNumber(amount),
+                                        tokenPrice
+                                    );
+
+                                    timeBlock = await addVolume(
+                                        timeBlock,
+                                        token,
+                                        amountWithPrice,
+                                        tokenPrice
+                                    );
+
+                                    if (latestLocked) {
+                                        const latestLockedWithPrice =
+                                            applyPrice(
+                                                new BigNumber(latestLocked),
+                                                tokenPrice
+                                            );
+                                        timeBlock = await setLocked(
+                                            timeBlock,
+                                            token,
+                                            latestLockedWithPrice
+                                        );
+                                    } else {
+                                        timeBlock = await subtractLocked(
+                                            timeBlock,
+                                            token,
+                                            amountWithPrice,
+                                            tokenPrice
+                                        );
+                                    }
+
+                                    // saveQueue.push(
+                                    //     new Transaction(
+                                    //         token,
+                                    //         new BigNumber(amount)
+                                    //             .negated()
+                                    //             .toFixed(),
+                                    //         renvmState.network,
+                                    //         this.instance,
+                                    //         timestamp.unix(),
+                                    //         block.height
+                                    //     )
+                                    // );
+                                }
+                            } else {
+                                console.error(
                                     `Unrecognized selector format ${selector}`
                                 );
                             }
-                            continue;
-                        }
-                        const { asset, token, mintOrBurn } = parsed;
 
-                        timeBlock =
-                            timeBlock || (await getTimeBlock(timestamp));
+                            if (amountWithPrice) {
+                                const assetLockedAfter =
+                                    timeBlock.lockedJSON.get(token)?.amount;
 
-                        const btcLockedBefore =
-                            timeBlock.lockedJSON.get("BTC/Ethereum")?.amount;
-
-                        let amountWithPrice: TokenAmount | undefined;
-                        if (mintOrBurn === MintOrBurn.BURN) {
-                            // Burn
-
-                            let tx = this.unmarshalBurn({
-                                tx: transaction as any, // as ResponseQueryBurnTx["tx"],
-                                txStatus: TxStatus.TxStatusDone,
-                            });
-
-                            // Check that the transaction wasn't reverted.
-                            if (
-                                tx.out &&
-                                ((tx.out as any).revert === undefined ||
-                                    (tx.out as any).revert === "")
-                            ) {
-                                const amount = tx.in.amount;
-
-                                timeBlock.pricesJSON = timeBlock.pricesJSON.set(
-                                    asset,
-                                    {
-                                        decimals: 0,
-                                        priceInEth: 0,
-                                        priceInBtc: 0,
-                                        priceInUsd: 0,
-                                        ...timeBlock.pricesJSON.get(asset),
-                                        ...(await getTokenPrice(
-                                            asset,
-                                            timestamp
-                                        )),
-                                    }
+                                console.log(
+                                    `[${
+                                        token === "BTC/Ethereum"
+                                            ? yellow(token)
+                                            : cyan(token)
+                                    }][${block.height}] ${
+                                        mintOrBurn === MintOrBurn.MINT
+                                            ? green(mintOrBurn)
+                                            : red(mintOrBurn)
+                                    } ${amountWithPrice.amount
+                                        .div(
+                                            new BigNumber(10).exponentiatedBy(8)
+                                        )
+                                        .toFixed()} ${magenta(asset)}`,
+                                    "before",
+                                    assetLockedBefore?.dividedBy(1e8).toFixed(),
+                                    "after",
+                                    assetLockedAfter?.dividedBy(1e8).toFixed(),
+                                    "difference",
+                                    assetLockedAfter
+                                        ?.minus(
+                                            assetLockedBefore ||
+                                                new BigNumber(0)
+                                        )
+                                        .dividedBy(1e8)
+                                        .toFixed()
                                 );
-
-                                const tokenPrice = timeBlock.pricesJSON.get(
-                                    asset,
-                                    undefined
-                                );
-                                amountWithPrice = applyPrice(
-                                    new BigNumber(amount),
-                                    tokenPrice
-                                );
-
-                                timeBlock = await addVolume(
-                                    timeBlock,
-                                    token,
-                                    amountWithPrice,
-                                    tokenPrice
-                                );
-
-                                timeBlock = await subtractLocked(
-                                    timeBlock,
-                                    token,
-                                    amountWithPrice,
-                                    tokenPrice
-                                );
-
-                                // saveQueue.push(
-                                //     new Transaction(
-                                //         token,
-                                //         new BigNumber(amount)
-                                //             .negated()
-                                //             .toFixed(),
-                                //         renvmState.network,
-                                //         this.instance,
-                                //         timestamp.unix(),
-                                //         block.height
-                                //     )
-                                // );
                             }
-                        } else if (mintOrBurn === MintOrBurn.MINT) {
-                            // Mint
-
-                            let tx = this.unmarshalMint({
-                                tx: transaction as any, // as ResponseQueryMintTx["tx"],
-                                txStatus: TxStatus.TxStatusDone,
-                            });
-
-                            // If the transaction doesn't have an `out` value, it
-                            // may have been reverted.
-                            if (
-                                tx.out &&
-                                (tx.out.revert === undefined ||
-                                    (tx.out.revert as any) === "")
-                            ) {
-                                const amount = (tx.out as any).amount;
-
-                                timeBlock.pricesJSON = timeBlock.pricesJSON.set(
-                                    asset,
-                                    {
-                                        decimals: 0,
-                                        priceInEth: 0,
-                                        priceInBtc: 0,
-                                        priceInUsd: 0,
-                                        ...timeBlock.pricesJSON.get(asset),
-                                        ...(await getTokenPrice(
-                                            asset,
-                                            timestamp
-                                        )),
-                                    }
-                                );
-
-                                const tokenPrice = timeBlock.pricesJSON.get(
-                                    asset,
-                                    undefined
-                                );
-                                amountWithPrice = applyPrice(
-                                    new BigNumber(amount),
-                                    tokenPrice
-                                );
-
-                                timeBlock = await addVolume(
-                                    timeBlock,
-                                    token,
-                                    amountWithPrice,
-                                    tokenPrice
-                                );
-
-                                timeBlock = await addLocked(
-                                    timeBlock,
-                                    token,
-                                    amountWithPrice,
-                                    tokenPrice
-                                );
-
-                                // saveQueue.push(
-                                //     new Transaction(
-                                //         token,
-                                //         amount,
-                                //         renvmState.network,
-                                //         this.instance,
-                                //         timestamp.unix(),
-                                //         block.height
-                                //     )
-                                // );
-                            }
-                        } else {
-                            console.error(
-                                `Unrecognized selector format ${selector}`
-                            );
-                        }
-
-                        if (amountWithPrice) {
-                            const btcLockedAfter =
-                                timeBlock.lockedJSON.get(token)?.amount;
-
-                            console.log(
-                                `[${
-                                    token === "BTC/Ethereum"
-                                        ? yellow(token)
-                                        : cyan(token)
-                                }][${block.height}] ${
-                                    mintOrBurn === MintOrBurn.MINT
-                                        ? green(mintOrBurn)
-                                        : red(mintOrBurn)
-                                } ${amountWithPrice.amount
-                                    .div(new BigNumber(10).exponentiatedBy(8))
-                                    .toFixed()} ${magenta(asset)}`,
-                                "before",
-                                btcLockedBefore?.dividedBy(1e8).toFixed(),
-                                "after",
-                                btcLockedAfter?.dividedBy(1e8).toFixed(),
-                                "difference",
-                                btcLockedAfter
-                                    ?.minus(btcLockedBefore || new BigNumber(0))
-                                    .dividedBy(1e8)
-                                    .toFixed()
-                            );
                         }
                     }
 

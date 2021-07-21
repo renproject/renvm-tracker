@@ -17,7 +17,7 @@ config();
 // Mainnet block 96566.
 const timestamp = 1626375768;
 
-const OUTPUT_FILE = "./src/indexer/final-96566.json";
+const OUTPUT_FILE = "./src/indexer/since-96566-2.json";
 
 const NETWORK = RenNetwork.Mainnet;
 
@@ -28,9 +28,9 @@ const main = async () => {
     for (const networkDetails of [
         // fantom,
         // avalanche,
-        // ethereum,
+        ethereum,
         // binanceSmartChain,
-        polygon,
+        // polygon,
     ]) {
         eventArray = eventArray.merge(
             await getHistoricEVMEvents(
@@ -43,7 +43,9 @@ const main = async () => {
     }
 
     // Solana chains
-    for (const networDetails of [solana]) {
+    for (const networDetails of [
+        // solana
+    ]) {
         eventArray = eventArray.merge(
             await getHistoricSolanaEvents(timestamp, networDetails, NETWORK)
         );

@@ -196,7 +196,8 @@ export const getHistoricEVMEvents = async (
         `Finding ${chainObject.chain} block with timestamp <= ${timestamp}.`
     );
 
-    const to = await getBlockBeforeTimestamp(web3, timestamp);
+    const deployedAtBlock = await getBlockBeforeTimestamp(web3, timestamp);
+    const to = await web3.eth.getBlockNumber();
 
     console.info(`Fetching events up until ${to}.`);
 
@@ -214,7 +215,7 @@ export const getHistoricEVMEvents = async (
 
     let total = new BigNumber(0);
 
-    for (const [symbol, deployedAtBlock] of gateways) {
+    for (const [symbol] of gateways) {
         const tokenContract = await chainObject.getTokenContractAddress(symbol);
 
         for (let i = deployedAtBlock; i < to; i += skip) {
@@ -264,6 +265,7 @@ export const getHistoricEVMEvents = async (
                         toTimestamp - (to - log.blockNumber) * blockTime
                     ),
                     amount: new BigNumber(log.data).toFixed(),
+                    txHash: log.transactionHash,
                 };
 
                 eventArray = eventArray.push(mint);
@@ -322,6 +324,7 @@ export const getHistoricEVMEvents = async (
                     )
                         .negated()
                         .toFixed(),
+                    txHash: log.transactionHash,
                 };
 
                 eventArray = eventArray.push(burn);
