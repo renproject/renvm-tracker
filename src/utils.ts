@@ -27,3 +27,23 @@ export const DEFAULT_REQUEST_TIMEOUT = 60 * SECONDS;
 
 export const naturalDiff = (after: Moment, before: Moment) =>
     moment.duration(after.diff(before)).humanize();
+
+export const extractError = (error: any, defaultMessage?: string): string => {
+    try {
+        if (error.data) {
+            return String(error.data).trim();
+        }
+        if (error.response.data) {
+            return String(error.response.data).trim();
+        }
+        if (error.response.statusText) {
+            return String(error.response.statusText).trim();
+        }
+        if (error.message) {
+            return String(error.message).trim();
+        }
+        return defaultMessage || String(error).trim();
+    } catch (error) {
+        return defaultMessage || String(error).trim();
+    }
+};

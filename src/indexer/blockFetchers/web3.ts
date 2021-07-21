@@ -12,6 +12,7 @@ import moment from "moment";
 import BigNumber from "bignumber.js";
 import { List } from "immutable";
 import { TokenPrice } from "../../database/models/amounts";
+import { extractError } from "../../utils";
 
 export interface Web3Event {
     network: RenVMInstances; // "mainnet-v0.3";
@@ -58,7 +59,7 @@ export const processEvents = async (events: List<Web3Event>) => {
         try {
             tokenPrice = await getTokenPrice(event.symbol, time);
         } catch (error) {
-            // console.error(tokenPrice);
+            console.error(extractError(error, "Unable to get token price."));
         }
 
         timeBlock = nextTimeBlock

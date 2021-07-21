@@ -14,12 +14,19 @@ export const runServer = async () => {
     });
 
     const apolloServer = new ApolloServer({ schema });
+    await apolloServer.start();
+
     const app = express();
 
     // Enable cors.
     app.use(cors());
 
-    apolloServer.applyMiddleware({ app });
+    apolloServer.applyMiddleware({ app, path: "/" });
 
     app.listen(PORT, () => console.log(`Server started on port ${PORT}.`));
+    await new Promise<void>((resolve) => app.listen({ port: 4000 }, resolve));
+
+    console.log(
+        `Server ready at http://localhost:4000${apolloServer.graphqlPath}`
+    );
 };

@@ -92,99 +92,89 @@ export const getTokenPrice = async (
     token: string,
     timestamp?: Moment
 ): Promise<TokenPrice | undefined> => {
-    try {
-        let date;
-        // If from more than 1 hour ago, get historic data.
-        if (
-            timestamp &&
-            moment.duration(moment().diff(timestamp)).asHours() > 1
-        ) {
-            date = timestamp.format("DD-MM-yy");
-        }
-
-        if (date) {
-            const historicCache = historicPriceCache
-                .get(token, Map<string, TokenPrice>())
-                .get(date);
-            if (historicCache) {
-                return historicCache;
-            }
-        }
-
-        let cached = priceCache.get(token, undefined);
-        const cachedTimestamp = priceCacheTimestamp.get(token, 0);
-        if (cached && time() - cachedTimestamp <= CACHE_EXPIRY) {
-            return cached;
-        }
-
-        const { decimals, coinGeckoID } = tokenIDs[token] || { decimals: 0 };
-
-        let priceInEth = 0;
-        let priceInBtc = 0;
-        let priceInUsd = 0;
-        if (coinGeckoID) {
-            let url;
-
-            if (date) {
-                url = `${coinGeckoURL}/coins/${coinGeckoID}/history?${coinGeckoParams}&date=${date}`;
-            } else {
-                url = `${coinGeckoURL}/coins/${coinGeckoID}?${coinGeckoParams}`;
-            }
-
-            console.log(`Getting price for ${token} (${date ? date : "now"})`);
-
-            const response = await Axios.get<{
-                market_data: { current_price: { [currency: string]: number } };
-            }>(url, {
-                timeout: DEFAULT_REQUEST_TIMEOUT,
-            });
-
-            priceInEth = response.data.market_data.current_price["eth"];
-            priceInBtc = response.data.market_data.current_price["btc"];
-            priceInUsd = response.data.market_data.current_price["usd"];
-        }
-
-        if (isNaN(priceInEth) || isNaN(priceInBtc) || isNaN(priceInUsd)) {
-            throw new Error(
-                `Invalid prices (${String(priceInEth)}, ${String(
-                    priceInBtc
-                )}, ${String(priceInUsd)})`
-            );
-        }
-
-        if (
-            isNaN(decimals) ||
-            isNaN(priceInEth) ||
-            isNaN(priceInBtc) ||
-            isNaN(priceInUsd)
-        ) {
-            throw new Error(
-                `Invalid token price inside getTokenPrice(${token})`
-            );
-        }
-
-        const tokenPrice: TokenPrice = {
-            decimals,
-            priceInEth,
-            priceInBtc,
-            priceInUsd,
-        };
-
-        if (date) {
-            historicPriceCache = historicPriceCache.set(
-                token,
-                historicPriceCache
-                    .get(token, Map<string, TokenPrice>())
-                    .set(date, tokenPrice)
-            );
-        } else {
-            priceCacheTimestamp = priceCacheTimestamp.set(token, time());
-            priceCache = priceCache.set(token, tokenPrice);
-        }
-
-        return tokenPrice;
-    } catch (error) {
-        console.error(error);
-        return undefined;
+    let date;
+    // If from more than 1 hour ago, get historic data.
+    if (timestamp && moment.duration(moment().diff(timestamp)).asHours() > 1) {
+        date = timestamp.format("DD-MM-yy");
     }
+
+    if (date) {
+        const historicCache = historicPriceCache
+            .get(token, Map<string, TokenPrice>())
+            .get(date);
+        if (historicCache) {
+            return historicCache;
+        }
+    }
+
+    let cached = priceCache.get(token, undefined);
+    const cachedTimestamp = priceCacheTimestamp.get(token, 0);
+    if (cached && time() - cachedTimestamp <= CACHE_EXPIRY) {
+        return cached;
+    }
+
+    const { decimals, coinGeckoID } = tokenIDs[token] || { decimals: 0 };
+
+    let priceInEth = 0;
+    let priceInBtc = 0;
+    let priceInUsd = 0;
+    if (coinGeckoID) {
+        let url;
+
+        if (date) {
+            url = `${coinGeckoURL}/coins/${coinGeckoID}/history?${coinGeckoParams}&date=${date}`;
+        } else {
+            url = `${coinGeckoURL}/coins/${coinGeckoID}?${coinGeckoParams}`;
+        }
+
+        console.log(`Getting price for ${token} (${date ? date : "now"})`);
+
+        const response = await Axios.get<{
+            market_data: { current_price: { [currency: string]: number } };
+        }>(url, {
+            timeout: DEFAULT_REQUEST_TIMEOUT,
+        });
+
+        priceInEth = response.data.market_data.current_price["eth"];
+        priceInBtc = response.data.market_data.current_price["btc"];
+        priceInUsd = response.data.market_data.current_price["usd"];
+    }
+
+    if (isNaN(priceInEth) || isNaN(priceInBtc) || isNaN(priceInUsd)) {
+        throw new Error(
+            `Invalid prices (${String(priceInEth)}, ${String(
+                priceInBtc
+            )}, ${String(priceInUsd)})`
+        );
+    }
+
+    if (
+        isNaN(decimals) ||
+        isNaN(priceInEth) ||
+        isNaN(priceInBtc) ||
+        isNaN(priceInUsd)
+    ) {
+        throw new Error(`Invalid token price inside getTokenPrice(${token})`);
+    }
+
+    const tokenPrice: TokenPrice = {
+        decimals,
+        priceInEth,
+        priceInBtc,
+        priceInUsd,
+    };
+
+    if (date) {
+        historicPriceCache = historicPriceCache.set(
+            token,
+            historicPriceCache
+                .get(token, Map<string, TokenPrice>())
+                .set(date, tokenPrice)
+        );
+    } else {
+        priceCacheTimestamp = priceCacheTimestamp.set(token, time());
+        priceCache = priceCache.set(token, tokenPrice);
+    }
+
+    return tokenPrice;
 };

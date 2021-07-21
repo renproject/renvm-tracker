@@ -27,6 +27,7 @@ import { RenVMInstance } from "./RenVMInstance";
 import { red, redBright } from "chalk";
 import { DEBUG } from "../../environmentVariables";
 import { getTokenPrice } from "../../indexer/PriceFetcher";
+import { extractError } from "../../utils";
 
 export enum RenNetwork {
     Mainnet = "mainnet",
@@ -152,16 +153,24 @@ export const addVolume = <T extends PartialTimeBlock>(
 
 const assertAmountIsValid = (amount: TokenAmount) => {
     if (amount.amount.isNaN()) {
-        throw new Error(`Invalid volume amount 'amountInEth'.`);
+        throw new Error(
+            `Invalid volume amount 'amount' in assertAmountIsValid.`
+        );
     }
     if (amount.amountInEth.isNaN()) {
-        throw new Error(`Invalid volume amount 'amountInEth'.`);
+        throw new Error(
+            `Invalid volume amount 'amountInEth' in assertAmountIsValid.`
+        );
     }
     if (amount.amountInBtc.isNaN()) {
-        throw new Error(`Invalid volume amount 'amountInBtc'.`);
+        throw new Error(
+            `Invalid volume amount 'amountInBtc' in assertAmountIsValid.`
+        );
     }
     if (amount.amountInUsd.isNaN()) {
-        throw new Error(`Invalid volume amount 'amountInUsd'.`);
+        throw new Error(
+            `Invalid volume amount 'amountInUsd' in assertAmountIsValid.`
+        );
     }
 
     return true;
@@ -228,7 +237,7 @@ export const updateTokenPrice = async <T extends PartialTimeBlock>(
     try {
         newTokenPrice = await getTokenPrice(asset, timestamp);
     } catch (error) {
-        console.error(newTokenPrice);
+        console.error(extractError(error, "Unable to get token price."));
     }
 
     timeBlock.pricesJSON = timeBlock.pricesJSON.set(asset, {
