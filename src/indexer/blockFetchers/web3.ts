@@ -26,6 +26,8 @@ export const processEvents = async (events: List<Web3Event>) => {
 
     let total = new BigNumber(0);
 
+    let timeBlock: TimeBlock | undefined;
+
     for (let i = 0; i < events.size; i++) {
         console.log(
             `Processing event ${i}/${events.size} (${Math.floor(
@@ -56,10 +58,10 @@ export const processEvents = async (events: List<Web3Event>) => {
         try {
             tokenPrice = await getTokenPrice(event.symbol, time);
         } catch (error) {
-            console.error(tokenPrice);
+            // console.error(tokenPrice);
         }
 
-        let timeBlock: TimeBlock = nextTimeBlock
+        timeBlock = nextTimeBlock
             ? nextTimeBlock
             : await getTimeBlock(timestamp);
 
@@ -101,5 +103,9 @@ export const processEvents = async (events: List<Web3Event>) => {
             await timeBlock.save();
             nextTimeBlock = null;
         }
+    }
+
+    if (timeBlock) {
+        await timeBlock.save();
     }
 };
