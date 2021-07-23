@@ -2,9 +2,9 @@ import Axios from "axios";
 import BigNumber from "bignumber.js";
 import { Map, OrderedMap } from "immutable";
 import moment, { Moment } from "moment";
-import { TokenAmount, TokenPrice } from "../database/models/amounts";
+import { TokenAmount, TokenPrice } from "../../database/models/amounts";
 
-import { DEFAULT_REQUEST_TIMEOUT, SECONDS, time } from "../utils";
+import { DEFAULT_REQUEST_TIMEOUT, SECONDS, time } from "../../utils";
 
 export const applyPrice = (
     amount: BigNumber,

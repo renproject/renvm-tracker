@@ -2,7 +2,6 @@ import { Field, ID, ObjectType } from "type-graphql";
 import {
     BaseEntity,
     Column,
-    Connection,
     Entity,
     LessThan,
     PrimaryGeneratedColumn,
@@ -22,11 +21,10 @@ import {
     VolumeMapTransformer,
     TokenAmount,
 } from "./amounts";
-import { List, OrderedMap } from "immutable";
-import { RenVMInstance } from "./RenVMInstance";
-import { red, redBright } from "chalk";
+import { OrderedMap } from "immutable";
+import { red } from "chalk";
 import { DEBUG } from "../../environmentVariables";
-import { getTokenPrice } from "../../indexer/PriceFetcher";
+import { getTokenPrice } from "../../tracker/priceFetcher/PriceFetcher";
 import { extractError } from "../../utils";
 
 export enum RenNetwork {

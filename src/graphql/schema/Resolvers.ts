@@ -1,4 +1,3 @@
-import { TokenAmount } from "../../database/models/amounts";
 import {
     Args,
     ArgsType,
@@ -8,9 +7,9 @@ import {
     Query,
     Resolver,
 } from "type-graphql";
-import { FindConditions, LessThanOrEqual } from "typeorm";
+import { LessThanOrEqual } from "typeorm";
 
-import { RenVMInstance, TimeBlock } from "../../database/models";
+import { TimeBlock } from "../../database/models";
 
 @ObjectType()
 abstract class Volume {

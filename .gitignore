@@ -1,3 +1,6 @@
+
+/tmpHistoricFiles/
+
 *.env
 
 node_modules

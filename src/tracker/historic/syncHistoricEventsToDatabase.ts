@@ -7,7 +7,7 @@ import {
     subtractLocked,
     TimeBlock,
 } from "../../database/models";
-import { applyPrice, getTokenPrice } from "../PriceFetcher";
+import { applyPrice, getTokenPrice } from "../priceFetcher/PriceFetcher";
 import moment from "moment";
 import BigNumber from "bignumber.js";
 import { List } from "immutable";
@@ -22,7 +22,9 @@ export interface Web3Event {
     amount: string; // "69930";
 }
 
-export const processEvents = async (events: List<Web3Event>) => {
+export const INPUT_FILE = "src/historic/events/final.json";
+
+export const syncHistoricEventsToDatabase = async (events: List<Web3Event>) => {
     let nextTimeBlock: TimeBlock | null = null;
 
     let total = new BigNumber(0);

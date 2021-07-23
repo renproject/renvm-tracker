@@ -17,7 +17,7 @@ config();
 // Mainnet block 96566.
 const timestamp = 1626375768;
 
-const OUTPUT_FILE = "./src/indexer/since-96566-2.json";
+const OUTPUT_FILE = "./src/historic/events/since-96566-2.json";
 
 const NETWORK = RenNetwork.Mainnet;
 
