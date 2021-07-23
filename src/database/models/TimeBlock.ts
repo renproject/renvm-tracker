@@ -23,9 +23,9 @@ import {
 } from "./amounts";
 import { OrderedMap } from "immutable";
 import { red } from "chalk";
-import { DEBUG } from "../../environmentVariables";
+import { DEBUG } from "../../util/environmentVariables";
 import { getTokenPrice } from "../../tracker/priceFetcher/PriceFetcher";
-import { extractError } from "../../utils";
+import { extractError } from "../../util/utils";
 
 export enum RenNetwork {
     Mainnet = "mainnet",

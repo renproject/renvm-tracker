@@ -4,9 +4,9 @@ import {
     NETWORK,
     SERVER_DISABLED,
     TRACKER_DISABLED,
-} from "./environmentVariables";
+} from "./util/environmentVariables";
 import { runServer } from "./graphql/server";
-import { CRASH } from "./utils";
+import { CRASH } from "./util/utils";
 import { runTracker } from "./tracker";
 
 // TODO: Remove once stable.

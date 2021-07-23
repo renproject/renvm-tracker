@@ -12,7 +12,7 @@ import moment from "moment";
 import BigNumber from "bignumber.js";
 import { List } from "immutable";
 import { TokenPrice } from "../../database/models/amounts";
-import { extractError } from "../../utils";
+import { extractError } from "../../util/utils";
 
 export interface Web3Event {
     network: RenVMInstances; // "mainnet-v0.3";

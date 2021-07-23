@@ -9,25 +9,20 @@
     "scripts": {
         "build": "yarn tsc",
         "start": "(. ./.env); yarn build && node dist/index.js",
-        "historic": "(. ./.env); yarn build && node ./dist/historic/historic.js"
+        "generate-historic": "(. ./.env); yarn build && node ./dist/historic/historic.js"
     },
     "dependencies": {
-        "@glif/filecoin-rpc-client": "^1.0.0-lerna.4",
-        "@renproject/chains": "^2.4.5",
+        "@renproject/chains-solana": "^2.4.5",
         "@renproject/chains-ethereum": "^2.4.5",
         "@renproject/interfaces": "^2.4.5",
-        "@renproject/ren": "^2.4.5",
         "@renproject/rpc": "^2.4.5",
         "@solana/web3.js": "^1.21.0",
         "@types/node": "^14.11.5",
         "apollo-server-express": "^3.0.2",
-        "async-mutex": "^0.2.4",
         "bignumber.js": "^9.0.1",
         "bn.js": "^5.2.0",
         "chalk": "^4.1.0",
-        "class-validator": "^0.12.2",
         "cors": "^2.8.5",
-        "create-hash": "^1.2.0",
         "dotenv": "^8.2.0",
         "express": "^4.17.1",
         "graphql": "^15.3.0",
@@ -40,9 +35,6 @@
         "typeorm": "^0.2.28",
         "typescript": "^4.0.3",
         "web3": "^1.4.0"
-    },
-    "devDependencies": {
-        "ts-node-dev": "^1.0.0-pre.63"
     },
     "prettier": {
         "tabWidth": 4

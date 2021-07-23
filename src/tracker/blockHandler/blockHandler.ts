@@ -7,8 +7,8 @@ import { unmarshalMintTx } from "@renproject/rpc/build/main/v2";
 import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
 import BigNumber from "bignumber.js";
 import { cyan, green, magenta, red, yellow } from "chalk";
-import { RenVMInstance, RenVMInstances } from "src/database/models";
-import { TokenAmount } from "src/database/models/amounts";
+import { RenVMInstance, RenVMInstances } from "../../database/models";
+import { TokenAmount } from "../../database/models/amounts";
 import { Connection } from "typeorm";
 import {
     addLocked,
@@ -21,7 +21,7 @@ import {
     TimeBlock,
     updateTokenPrice,
 } from "../../database/models/TimeBlock";
-import { DEBUG } from "../../environmentVariables";
+import { DEBUG } from "../../util/environmentVariables";
 import {
     BlockHandlerInterface,
     BlockState,

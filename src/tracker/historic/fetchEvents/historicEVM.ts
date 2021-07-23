@@ -12,9 +12,9 @@ import {
 } from "@renproject/chains-ethereum";
 import { green } from "chalk";
 import { RenNetwork } from "@renproject/interfaces";
-import { HistoricEvent } from "./types";
 import { config } from "dotenv";
 import { writeFile } from "fs";
+import { HistoricEvent } from "../types";
 config();
 
 // If more than 10000 events are in any set of 250k logs, then this should be

@@ -11,7 +11,7 @@ import { RenVMProvider } from "@renproject/rpc/build/main/v2/renVMProvider";
 
 import { RenVMInstance, RenVMInstances } from "../../database/models";
 import { BlockState, CommonBlock, BlockHandlerInterface } from "./events";
-import { SECONDS, sleep } from "src/utils";
+import { SECONDS, sleep } from "../../util/utils";
 
 export class BlockWatcher {
     latestTimestamp = 0;

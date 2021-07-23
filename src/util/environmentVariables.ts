@@ -1,4 +1,4 @@
-import { RenVMInstances } from "./database/models/RenVMInstance";
+import { RenVMInstances } from "../database/models/RenVMInstance";
 
 import dotenv from "dotenv";
 

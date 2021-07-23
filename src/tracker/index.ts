@@ -3,7 +3,7 @@ import { List } from "immutable";
 import { Connection } from "typeorm";
 
 import { RenVMInstances } from "../database/models/RenVMInstance";
-import { CRASH } from "../utils";
+import { CRASH } from "../util/utils";
 import { BlockHandler } from "./blockHandler/blockHandler";
 import {
     INPUT_FILE,

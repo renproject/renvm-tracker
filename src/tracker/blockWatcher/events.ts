@@ -2,8 +2,7 @@ import BigNumber from "bignumber.js";
 import { Moment } from "moment";
 
 import { ResponseQueryTx } from "@renproject/rpc/build/main/v2";
-import { RenVMInstance } from "src/database/models";
-import { Connection } from "typeorm";
+import { RenVMInstance } from "../../database/models";
 
 export interface CommonBlock {
     height: number;

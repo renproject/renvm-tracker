@@ -1,7 +1,7 @@
 import { Solana, SolanaClass } from "@renproject/chains";
 import { RenNetwork } from "@renproject/interfaces";
 import { List } from "immutable";
-import { HistoricEvent } from "./types";
+import { HistoricEvent } from "../types";
 import { resolveNetwork } from "@renproject/chains-solana/build/main/networks";
 import { ConfirmedSignatureInfo, Connection, PublicKey } from "@solana/web3.js";
 import BigNumber from "bignumber.js";
