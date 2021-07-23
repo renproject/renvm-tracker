@@ -242,8 +242,8 @@ export class BlockHandler {
         blockState?: BlockState
     ) => {
         if (block.transactions.length > 0) {
+            // Update timeBlock for each transaction.
             let timeBlock = await getTimeBlock(block.timestamp);
-
             for (let transaction of block.transactions) {
                 timeBlock = await this.transactionHandler(
                     timeBlock,
@@ -253,6 +253,8 @@ export class BlockHandler {
                 );
             }
 
+            // Save timeBlock and renVM database entries atomically.
+            renVM.syncedBlock = block.height;
             await this.connection.manager.save([renVM, timeBlock]);
         }
     };
