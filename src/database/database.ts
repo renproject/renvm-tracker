@@ -73,9 +73,7 @@ export const runDatabase = async (
     return { connection, initialize };
 };
 
-export const resetDatabase = async (
-    NETWORK: RenVMInstances.Mainnet | RenVMInstances.Testnet
-) => {
+export const resetDatabase = async () => {
     console.info(`Resetting database...`);
 
     let connection: Connection;
