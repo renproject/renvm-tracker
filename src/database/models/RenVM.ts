@@ -6,27 +6,15 @@ import {
     PrimaryGeneratedColumn,
     Unique,
 } from "typeorm";
-
-import { RenNetwork } from "./TimeBlock";
-
-export enum RenVMInstances {
-    Mainnet = "mainnet",
-    MainnetVDot3 = "mainnet-v0.3",
-    Testnet = "testnet",
-    TestnetVDot3 = "testnet-v0.3",
-}
+import { RenNetwork } from "../../networks";
 
 @Entity()
 @ObjectType()
 @Unique(["name"])
-export class RenVMInstance extends BaseEntity {
+export class RenVM extends BaseEntity {
     @Field(() => ID)
     @PrimaryGeneratedColumn()
     id: number | null = null;
-
-    @Field(() => String)
-    @Column()
-    name!: RenVMInstances;
 
     @Field(() => Int)
     @Column()
@@ -38,12 +26,11 @@ export class RenVMInstance extends BaseEntity {
 
     @Field(() => String)
     @Column()
-    network!: RenNetwork;
+    network: RenNetwork;
 
-    constructor(name: RenVMInstances, network: RenNetwork) {
+    constructor(network: RenNetwork) {
         super();
 
-        this.name = name;
         this.migrationCount = 0;
         this.network = network;
     }

@@ -1,59 +1,38 @@
 import { Connection, createConnection, getConnection } from "typeorm";
 
 import { typeOrmConfig } from "./connection";
-import { RenNetwork, RenVMInstance, RenVMInstances } from "./models";
+import { RenVM } from "./models";
+import { RenNetwork } from "../networks";
 
 export const initializeDatabase = async (
-    network: RenVMInstances.Mainnet | RenVMInstances.Testnet
+    network: RenNetwork.Mainnet | RenNetwork.Testnet
 ) => {
     switch (network) {
-        case RenVMInstances.Mainnet:
-            const mainnet = new RenVMInstance(
-                RenVMInstances.Mainnet,
-                RenNetwork.Mainnet
-            );
+        case RenNetwork.Mainnet:
+            const mainnet = new RenVM(RenNetwork.Mainnet);
             mainnet.syncedBlock = 96566;
             await mainnet.save();
 
             break;
-        case RenVMInstances.Testnet:
-            const testnet = new RenVMInstance(
-                RenVMInstances.Testnet,
-                RenNetwork.Testnet
-            );
+        case RenNetwork.Testnet:
+            const testnet = new RenVM(RenNetwork.Testnet);
             testnet.syncedBlock = 2484310;
             await testnet.save();
-
-            const testnetVDot3 = new RenVMInstance(
-                RenVMInstances.TestnetVDot3,
-                RenNetwork.Testnet
-            );
-            testnetVDot3.syncedBlock = 714167;
-            await testnetVDot3.save();
 
             break;
     }
 };
 
 export const runDatabase = async (
-    NETWORK: RenVMInstances.Mainnet | RenVMInstances.Testnet
+    NETWORK: RenNetwork.Mainnet | RenNetwork.Testnet
 ): Promise<{
     connection: Connection;
     initialize: boolean;
 }> => {
     console.info(`Connecting to database...`);
 
-    let connection: Connection;
-    try {
-        connection = await createConnection(typeOrmConfig);
-    } catch (error) {
-        if (/AlreadyHasActiveConnectionError/.exec(error.message)) {
-            // Use existing connection.
-            connection = await getConnection();
-        } else {
-            throw error;
-        }
-    }
+    const connection = await createConnection(typeOrmConfig);
+
     // await connection.dropDatabase();
     await connection.showMigrations();
     await connection.runMigrations();

@@ -1,12 +1,11 @@
-import { RenVMInstances } from "../database/models/RenVMInstance";
-
 import dotenv from "dotenv";
+import { RenNetwork } from "../networks";
 
 dotenv.config();
 
-export const NETWORK: RenVMInstances.Mainnet | RenVMInstances.Testnet =
-    (process.env.NETWORK as RenVMInstances.Mainnet | RenVMInstances.Testnet) ||
-    RenVMInstances.Mainnet;
+export const NETWORK: RenNetwork.Mainnet | RenNetwork.Testnet =
+    (process.env.NETWORK as RenNetwork.Mainnet | RenNetwork.Testnet) ||
+    RenNetwork.Mainnet;
 
 export const DEBUG = process.env.DEBUG || false;
 

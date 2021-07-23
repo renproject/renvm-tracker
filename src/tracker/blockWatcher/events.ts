@@ -2,7 +2,7 @@ import BigNumber from "bignumber.js";
 import { Moment } from "moment";
 
 import { ResponseQueryTx } from "@renproject/rpc/build/main/v2";
-import { RenVMInstance } from "../../database/models";
+import { RenVM } from "../../database/models";
 
 export interface CommonBlock {
     height: number;
@@ -17,7 +17,7 @@ export interface BlockState {
 }
 
 export type BlockHandlerInterface = (
-    renVM: RenVMInstance,
+    renVM: RenVM,
     block: CommonBlock,
     blockState?: BlockState
 ) => Promise<void>;

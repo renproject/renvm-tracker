@@ -2,7 +2,6 @@ import { readFile } from "fs/promises";
 import { List } from "immutable";
 import { Connection } from "typeorm";
 
-import { RenVMInstances } from "../database/models/RenVMInstance";
 import { CRASH } from "../util/utils";
 import { BlockHandler } from "./blockHandler/blockHandler";
 import {
@@ -11,9 +10,10 @@ import {
     Web3Event,
 } from "./historic/syncHistoricEventsToDatabase";
 import { BlockWatcher } from "./blockWatcher/blockWatcher";
+import { RenNetwork } from "../networks";
 
 export const runTracker = async (
-    network: RenVMInstances.Mainnet | RenVMInstances.Testnet,
+    network: RenNetwork.Mainnet | RenNetwork.Testnet,
     connection: Connection,
     initialize: boolean
 ) => {

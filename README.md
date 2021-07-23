@@ -4,9 +4,14 @@ Minimal server that matches transactions to specific addresses.
 
 ## TODO
 
-* Unify database and GraphQL interfaces
-* Add fee and darknode infromation
-* Testnet version
+-   Add fee and darknode infromation
+-   Testnet version
+
+## Notes
+
+In order to keep a 1:1 map between the database entities and the GraphQL schema,
+the volumes, locked amounts and prices are manipulated as strings. Any Snapshot
+manipulation should be confined to `snapshotUtils`.
 
 ## Current set-up guides:
 

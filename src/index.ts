@@ -1,5 +1,4 @@
 import { resetDatabase, runDatabase } from "./database/database";
-import { RenVMInstances } from "./database/models/RenVMInstance";
 import {
     NETWORK,
     SERVER_DISABLED,
@@ -8,6 +7,7 @@ import {
 import { runServer } from "./graphql/server";
 import { CRASH } from "./util/utils";
 import { runTracker } from "./tracker";
+import { RenNetwork } from "./networks";
 
 // TODO: Remove once stable.
 const RESET_DATABASE: boolean = false;
@@ -19,7 +19,7 @@ const RESET_DATABASE: boolean = false;
  * (3) Runs the GraphQL server.
  */
 export const main = async (
-    network: RenVMInstances.Mainnet | RenVMInstances.Testnet
+    network: RenNetwork.Mainnet | RenNetwork.Testnet
 ) => {
     console.log(`Network: ${network}`);
 

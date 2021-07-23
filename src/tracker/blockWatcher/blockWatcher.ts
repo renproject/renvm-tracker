@@ -1,4 +1,4 @@
-import { red } from "chalk";
+import { red, yellow } from "chalk";
 import moment, { Moment } from "moment";
 import { Connection } from "typeorm";
 
@@ -9,35 +9,26 @@ import {
 } from "@renproject/rpc/build/main/v2";
 import { RenVMProvider } from "@renproject/rpc/build/main/v2/renVMProvider";
 
-import { RenVMInstance, RenVMInstances } from "../../database/models";
+import { RenVM } from "../../database/models";
+import { RenNetwork } from "../../networks";
 import { BlockState, CommonBlock, BlockHandlerInterface } from "./events";
 import { SECONDS, sleep } from "../../util/utils";
 
 export class BlockWatcher {
-    latestTimestamp = 0;
-
-    BATCH_SIZE = 16;
+    batchSize = 16;
 
     blockSubscriptions: Array<BlockHandlerInterface> = [];
 
     client: RenVMProvider | null = null;
-    instance: RenVMInstances;
+    network: RenNetwork;
     connection: Connection;
 
-    name: string = "";
-
-    constructor(instance: RenVMInstances, connection: Connection) {
-        this.instance = instance;
+    constructor(network: RenNetwork, connection: Connection) {
+        this.network = network;
         this.connection = connection;
     }
 
-    async readDatabase() {
-        return await RenVMInstance.findOneOrFail({
-            name: this.instance,
-        });
-    }
-
-    async start() {
+    start = async () => {
         const client = await this.connect();
 
         while (true) {
@@ -49,9 +40,9 @@ export class BlockWatcher {
 
             await sleep(10 * SECONDS);
         }
-    }
+    };
 
-    subscribe(event: "block", handler: BlockHandlerInterface) {
+    subscribe = (event: "block", handler: BlockHandlerInterface) => {
         switch (event) {
             case "block":
                 this.blockSubscriptions.push(handler);
@@ -59,20 +50,18 @@ export class BlockWatcher {
             default:
                 throw new Error(`Unsupported event type "${event}".`);
         }
-    }
+    };
 
-    async connect() {
+    connect = async () => {
         if (this.client) {
             return this.client;
         }
 
-        const renvmState = await this.readDatabase();
-
-        const client = new RenVMProvider(renvmState.name);
+        const client = new RenVMProvider(this.network);
         this.client = client;
 
         return client;
-    }
+    };
 
     latestBlock = async (
         client: RenVMProvider
@@ -87,7 +76,7 @@ export class BlockWatcher {
         };
     };
 
-    getNextBatchOfBlocks = async (
+    getNextBlockBatch = async (
         client: RenVMProvider,
         fromBlock: number | undefined,
         n: number
@@ -125,8 +114,10 @@ export class BlockWatcher {
         );
     };
 
-    async loop(client: RenVMProvider) {
-        const renvmState = await this.readDatabase();
+    loop = async (client: RenVMProvider) => {
+        const renvmState = await RenVM.findOneOrFail({
+            network: this.network,
+        });
 
         let syncedHeight: number = renvmState.syncedBlock;
 
@@ -145,7 +136,7 @@ export class BlockWatcher {
         // Detect migration - latest block height has been reset.
         if (syncedHeight > 1 && latestBlock.height < syncedHeight - 1000) {
             console.warn(
-                `[${renvmState.network}] ${red(`Detected block reset.`)}`
+                `[${yellow(this.network)}] ${red(`Detected block reset.`)}`
             );
             renvmState.migrationCount = renvmState.migrationCount + 1;
             renvmState.syncedBlock = 1;
@@ -154,7 +145,9 @@ export class BlockWatcher {
 
         if (syncedHeight === 1 && renvmState.migrationCount === 0) {
             console.warn(
-                `[${renvmState.network}] Starting indexer fom latest block - ${
+                `[${yellow(
+                    this.network
+                )}] Starting indexer fom latest block - ${
                     latestBlock.height
                 } (${latestBlock.timestamp.unix()})`
             );
@@ -168,17 +161,17 @@ export class BlockWatcher {
             for (
                 let i = syncedHeight;
                 i <= latestBlock.height;
-                i += this.BATCH_SIZE
+                i += this.batchSize
             ) {
-                const latestBlocks = await this.getNextBatchOfBlocks(
+                const latestBlocks = await this.getNextBlockBatch(
                     client,
                     i,
                     syncedHeight && latestBlock.height
                         ? Math.min(
                               latestBlock.height - syncedHeight,
-                              this.BATCH_SIZE
+                              this.batchSize
                           )
-                        : this.BATCH_SIZE
+                        : this.batchSize
                 );
 
                 for (const block of latestBlocks) {
@@ -196,5 +189,5 @@ export class BlockWatcher {
 
             await renvmState.save();
         }
-    }
+    };
 }

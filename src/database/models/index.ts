@@ -1,2 +1,2 @@
-export * from "./TimeBlock";
-export * from "./RenVMInstance";
+export * from "./Snapshot";
+export * from "./RenVM";

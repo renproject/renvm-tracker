@@ -1,22 +1,20 @@
-import {
-    addLocked,
-    addVolume,
-    getTimeBlock,
-    getTimestamp,
-    RenVMInstances,
-    subtractLocked,
-    TimeBlock,
-} from "../../database/models";
-import { applyPrice, getTokenPrice } from "../priceFetcher/PriceFetcher";
+import { getTimestamp, Snapshot, TokenPrice } from "../../database/models";
+import { RenNetwork } from "../../networks";
+import { applyPrice } from "../priceFetcher/PriceFetcher";
 import moment from "moment";
 import BigNumber from "bignumber.js";
 import { List } from "immutable";
-import { TokenPrice } from "../../database/models/amounts";
-import { extractError } from "../../util/utils";
+import {
+    addLocked,
+    addVolume,
+    getSnapshot,
+    getTokenPrice,
+    updateTokenPrice,
+} from "../blockHandler/snapshotUtils";
 
 export interface Web3Event {
-    network: RenVMInstances; // "mainnet-v0.3";
-    chain: "Ethereum" | "BinanceSmartChain";
+    network: RenNetwork;
+    chain: string; // "Ethereum"
     symbol: string; // "ZEC";
     timestamp: number; // 1586291424;
     amount: string; // "69930";
@@ -25,11 +23,9 @@ export interface Web3Event {
 export const INPUT_FILE = "src/historic/events/final.json";
 
 export const syncHistoricEventsToDatabase = async (events: List<Web3Event>) => {
-    let nextTimeBlock: TimeBlock | null = null;
-
     let total = new BigNumber(0);
 
-    let timeBlock: TimeBlock | undefined;
+    let snapshot: Snapshot | undefined;
 
     for (let i = 0; i < events.size; i++) {
         console.log(
@@ -52,63 +48,31 @@ export const syncHistoricEventsToDatabase = async (events: List<Web3Event>) => {
             );
         }
 
-        const time = moment(event.timestamp * 1000);
-        const timestamp = getTimestamp(moment(event.timestamp * 1000));
-
-        // const network = event.network.split("-")[0] as RenNetwork;
-
-        let tokenPrice: TokenPrice | undefined = undefined;
-        try {
-            tokenPrice = await getTokenPrice(event.symbol, time);
-        } catch (error) {
-            console.error(extractError(error, "Unable to get token price."));
+        if (
+            !snapshot ||
+            snapshot.timestamp !== getTimestamp(moment(event.timestamp * 1000))
+        ) {
+            if (snapshot) {
+                snapshot.save();
+            }
+            snapshot = await getSnapshot(moment(event.timestamp * 1000));
         }
 
-        timeBlock = nextTimeBlock
-            ? nextTimeBlock
-            : await getTimeBlock(timestamp);
+        snapshot = await updateTokenPrice(snapshot, event.symbol);
+        const tokenPrice = getTokenPrice(snapshot, event.symbol);
 
-        const rawAmount = new BigNumber(event.amount);
-        const isBurn = rawAmount.isNegative();
-        const amount = rawAmount.absoluteValue();
-
-        const tokenAmount = applyPrice(amount, tokenPrice);
-
-        const selector = `${event.symbol.toUpperCase()}/${event.chain}`;
-
-        timeBlock = addVolume(timeBlock, selector, tokenAmount, tokenPrice);
-        timeBlock = (isBurn ? subtractLocked : addLocked)(
-            timeBlock,
-            selector,
-            tokenAmount,
+        const tokenAmount = applyPrice(
+            event.chain,
+            event.symbol,
+            event.amount,
             tokenPrice
         );
 
-        // Update price for symbol.
-        timeBlock.pricesJSON = timeBlock.pricesJSON.set(event.symbol, {
-            decimals: 0,
-            priceInEth: 0,
-            priceInBtc: 0,
-            priceInUsd: 0,
-            ...timeBlock.pricesJSON.get(event.symbol, undefined),
-            ...tokenPrice,
-        });
-
-        const nextEvent = events.get(i + 1);
-
-        if (
-            nextEvent &&
-            getTimestamp(moment(nextEvent.timestamp * 1000)) === timestamp
-        ) {
-            nextTimeBlock = timeBlock;
-        } else {
-            console.log(`Saving time-block ${timestamp}.`);
-            await timeBlock.save();
-            nextTimeBlock = null;
-        }
+        snapshot = addVolume(snapshot, tokenAmount, tokenPrice);
+        snapshot = addLocked(snapshot, tokenAmount, tokenPrice);
     }
 
-    if (timeBlock) {
-        await timeBlock.save();
+    if (snapshot) {
+        await snapshot.save();
     }
 };

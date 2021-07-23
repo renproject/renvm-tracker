@@ -2,32 +2,35 @@ import Axios from "axios";
 import BigNumber from "bignumber.js";
 import { Map, OrderedMap } from "immutable";
 import moment, { Moment } from "moment";
-import { TokenAmount, TokenPrice } from "../../database/models/amounts";
+import { TokenAmount, TokenPrice } from "../../database/models/Snapshot";
 
 import { DEFAULT_REQUEST_TIMEOUT, SECONDS, time } from "../../util/utils";
 
 export const applyPrice = (
-    amount: BigNumber,
-    price?: TokenPrice
+    chain: string,
+    asset: string,
+    amount: string,
+    price: TokenPrice | undefined
 ): TokenAmount => {
     const shifted = price
-        ? amount.div(new BigNumber(10).exponentiatedBy(price.decimals))
+        ? new BigNumber(amount).div(
+              new BigNumber(10).exponentiatedBy(price.decimals)
+          )
         : null;
-    return {
+    return new TokenAmount(
+        chain,
+        asset,
         amount,
-        amountInEth:
-            price && shifted
-                ? shifted.times(price.priceInEth).decimalPlaces(8)
-                : new BigNumber(0),
-        amountInBtc:
-            price && shifted
-                ? shifted.times(price.priceInBtc).decimalPlaces(8)
-                : new BigNumber(0),
-        amountInUsd:
-            price && shifted
-                ? shifted.times(price.priceInUsd).decimalPlaces(2)
-                : new BigNumber(0),
-    };
+        price && shifted
+            ? shifted.times(price.priceInEth).decimalPlaces(8).toFixed()
+            : new BigNumber(0).toFixed(),
+        price && shifted
+            ? shifted.times(price.priceInBtc).decimalPlaces(8).toFixed()
+            : new BigNumber(0).toFixed(),
+        price && shifted
+            ? shifted.times(price.priceInUsd).decimalPlaces(2).toFixed()
+            : new BigNumber(0).toFixed()
+    );
 };
 
 export type TokenPrices = OrderedMap<string, TokenPrice>;
@@ -88,7 +91,7 @@ let historicPriceCache = Map<string, Map<string, TokenPrice>>();
 const coinGeckoURL = `https://api.coingecko.com/api/v3`;
 const coinGeckoParams = `localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
 
-export const getTokenPrice = async (
+export const fetchTokenPrice = async (
     token: string,
     timestamp?: Moment
 ): Promise<TokenPrice | undefined> => {
@@ -148,21 +151,15 @@ export const getTokenPrice = async (
         );
     }
 
-    if (
-        isNaN(decimals) ||
-        isNaN(priceInEth) ||
-        isNaN(priceInBtc) ||
-        isNaN(priceInUsd)
-    ) {
-        throw new Error(`Invalid token price inside getTokenPrice(${token})`);
-    }
-
-    const tokenPrice: TokenPrice = {
+    const tokenPrice = new TokenPrice(
+        token,
         decimals,
         priceInEth,
         priceInBtc,
-        priceInUsd,
-    };
+        priceInUsd
+    );
+
+    assertPriceIsValid(tokenPrice);
 
     if (date) {
         historicPriceCache = historicPriceCache.set(
@@ -177,4 +174,35 @@ export const getTokenPrice = async (
     }
 
     return tokenPrice;
+};
+
+export const assertPriceIsValid = (price: TokenPrice, where?: string) => {
+    if (isNaN(price.decimals)) {
+        throw new Error(
+            `Invalid price field 'decimals' in ${where || "assetPriceIsValid"}.`
+        );
+    }
+    if (isNaN(price.priceInEth)) {
+        throw new Error(
+            `Invalid price field 'priceInEth' in ${
+                where || "assetPriceIsValid"
+            }.`
+        );
+    }
+    if (isNaN(price.priceInBtc)) {
+        throw new Error(
+            `Invalid price field 'priceInBtc' in ${
+                where || "assetPriceIsValid"
+            }.`
+        );
+    }
+    if (isNaN(price.priceInUsd)) {
+        throw new Error(
+            `Invalid price field 'priceInUsd' in ${
+                where || "assetPriceIsValid"
+            }.`
+        );
+    }
+
+    return true;
 };
