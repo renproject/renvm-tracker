@@ -24,7 +24,7 @@ export interface Web3Event {
     amount: string; // "69930";
 }
 
-export const INPUT_FILE = "src/historic/events/final.json";
+export const INPUT_FILE = "src/tracker/historic/events/final.json";
 
 export const syncHistoricEventsToDatabase = async (events: List<Web3Event>) => {
     let total = new BigNumber(0);
