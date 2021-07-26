@@ -19,7 +19,7 @@ export const getTimestamp = (time: Moment | number): number => {
 };
 
 @ObjectType()
-export class TokenAmount {
+export class AssetAmount {
     @Field(() => String)
     chain: string;
     @Field(() => String)
@@ -51,9 +51,9 @@ export class TokenAmount {
 }
 
 @ObjectType()
-export class TokenPrice {
+export class AssetPrice {
     @Field(() => String)
-    token: string;
+    asset: string;
     @Field(() => Number)
     decimals: number;
     @Field(() => Number)
@@ -64,13 +64,13 @@ export class TokenPrice {
     priceInUsd: number;
 
     constructor(
-        token: string,
+        asset: string,
         decimals: number,
         priceInEth: number,
         priceInBtc: number,
         priceInUsd: number
     ) {
-        this.token = token;
+        this.asset = asset;
         this.decimals = decimals;
         this.priceInEth = priceInEth;
         this.priceInBtc = priceInBtc;
@@ -97,23 +97,23 @@ export class Snapshot extends BaseEntity {
     @Column()
     timestamp: number;
 
-    @Field(() => [TokenAmount])
+    @Field(() => [AssetAmount])
     @Column("varchar", JSONTransformer)
-    volume: TokenAmount[];
+    volume: AssetAmount[];
 
-    @Field(() => [TokenAmount])
+    @Field(() => [AssetAmount])
     @Column("varchar", JSONTransformer)
-    locked: TokenAmount[];
+    locked: AssetAmount[];
 
-    @Field(() => [TokenPrice])
+    @Field(() => [AssetPrice])
     @Column("varchar", JSONTransformer)
-    prices: TokenPrice[];
+    prices: AssetPrice[];
 
     constructor(
         time: number | undefined,
-        volume: TokenAmount[],
-        locked: TokenAmount[],
-        prices: TokenPrice[]
+        volume: AssetAmount[],
+        locked: AssetAmount[],
+        prices: AssetPrice[]
     ) {
         super();
         this.timestamp = time ? getTimestamp(time) : 0;
@@ -135,9 +135,9 @@ export const getSnapshot = async (timestampMoment: Moment) => {
     if (!snapshot) {
         // Get latest Snapshot before timestamp.
         const previousSnapshot: {
-            volume: TokenAmount[];
-            locked: TokenAmount[];
-            prices: TokenPrice[];
+            volume: AssetAmount[];
+            locked: AssetAmount[];
+            prices: AssetPrice[];
         } = (await Snapshot.findOne({
             where: {
                 timestamp: LessThan(timestamp),

@@ -216,7 +216,7 @@ export const getHistoricEVMEvents = async (
     let total = new BigNumber(0);
 
     for (const [symbol] of gateways) {
-        const tokenContract = await chainObject.getTokenContractAddress(symbol);
+        const assetContract = await chainObject.getTokenContractAddress(symbol);
 
         for (let i = deployedAtBlock; i < to; i += skip) {
             console.info(
@@ -229,7 +229,7 @@ export const getHistoricEVMEvents = async (
             while (true) {
                 try {
                     mintLogs = await web3.eth.getPastLogs({
-                        address: tokenContract,
+                        address: assetContract,
                         fromBlock: i,
                         toBlock: Math.min(i + skip, to),
                         topics: [
@@ -279,7 +279,7 @@ export const getHistoricEVMEvents = async (
             while (true) {
                 try {
                     burnLogs = await web3.eth.getPastLogs({
-                        address: tokenContract,
+                        address: assetContract,
                         fromBlock: i,
                         toBlock: Math.min(i + skip, to),
                         topics: [

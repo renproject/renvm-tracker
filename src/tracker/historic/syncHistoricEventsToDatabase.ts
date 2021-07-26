@@ -2,7 +2,7 @@ import {
     getSnapshot,
     getTimestamp,
     Snapshot,
-    TokenPrice,
+    AssetPrice,
 } from "../../database/models";
 import { RenNetwork } from "../../networks";
 import { applyPrice } from "../priceFetcher/PriceFetcher";
@@ -12,8 +12,8 @@ import { List } from "immutable";
 import {
     addLocked,
     addVolume,
-    getTokenPrice,
-    updateTokenPrice,
+    getAssetPrice,
+    updateAssetPrice,
 } from "../blockHandler/snapshotUtils";
 
 export interface Web3Event {
@@ -62,22 +62,22 @@ export const syncHistoricEventsToDatabase = async (events: List<Web3Event>) => {
             snapshot = await getSnapshot(moment(event.timestamp * 1000));
         }
 
-        snapshot = await updateTokenPrice(
+        snapshot = await updateAssetPrice(
             snapshot,
             event.symbol,
             event.network
         );
-        const tokenPrice = getTokenPrice(snapshot, event.symbol);
+        const assetPrice = getAssetPrice(snapshot, event.symbol);
 
-        const tokenAmount = applyPrice(
+        const assetAmount = applyPrice(
             event.chain,
             event.symbol,
             event.amount,
-            tokenPrice
+            assetPrice
         );
 
-        snapshot = addVolume(snapshot, tokenAmount, tokenPrice);
-        snapshot = addLocked(snapshot, tokenAmount, tokenPrice);
+        snapshot = addVolume(snapshot, assetAmount, assetPrice);
+        snapshot = addLocked(snapshot, assetAmount, assetPrice);
     }
 
     if (snapshot) {

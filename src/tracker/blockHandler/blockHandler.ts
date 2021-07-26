@@ -12,11 +12,11 @@ import { Snapshot, getSnapshot } from "../../database/models/Snapshot";
 import {
     addLocked,
     addVolume,
-    getTokenPrice,
+    getAssetPrice,
     MintOrBurn,
     parseSelector,
     setLocked,
-    updateTokenPrice,
+    updateAssetPrice,
 } from "./snapshotUtils";
 import { DEBUG } from "../../common/environmentVariables";
 import {
@@ -128,24 +128,24 @@ export class BlockHandler {
         }
 
         if (amount) {
-            snapshot = await updateTokenPrice(snapshot, asset, this.network);
-            const tokenPrice = getTokenPrice(snapshot, asset);
+            snapshot = await updateAssetPrice(snapshot, asset, this.network);
+            const assetPrice = getAssetPrice(snapshot, asset);
 
             const amountWithPrice = applyPrice(
                 chain,
                 asset,
                 amount,
-                tokenPrice
+                assetPrice
             );
 
-            snapshot = await addVolume(snapshot, amountWithPrice, tokenPrice);
+            snapshot = await addVolume(snapshot, amountWithPrice, assetPrice);
 
             if (latestLocked) {
                 const latestLockedWithPrice = applyPrice(
                     chain,
                     asset,
                     latestLocked.toFixed(),
-                    tokenPrice
+                    assetPrice
                 );
                 console.log(
                     `${logPrefix} Updating ${asset} on ${chain} locked amount to ${latestLockedWithPrice.amount} ($${latestLockedWithPrice.amountInUsd}).`
@@ -155,7 +155,7 @@ export class BlockHandler {
                 snapshot = await addLocked(
                     snapshot,
                     amountWithPrice,
-                    tokenPrice
+                    assetPrice
                 );
             }
 

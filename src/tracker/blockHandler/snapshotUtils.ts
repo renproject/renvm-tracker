@@ -5,24 +5,24 @@ import moment from "moment";
 import {
     applyPrice,
     assertPriceIsValid,
-    fetchTokenPrice,
+    fetchAssetPrice,
 } from "../priceFetcher/PriceFetcher";
 import { extractError } from "../../common/utils";
 
-import { TokenAmount, TokenPrice } from "../../database/models/Snapshot";
+import { AssetAmount, AssetPrice } from "../../database/models/Snapshot";
 import { RenNetwork } from "../../networks";
 
 export interface ISnapshot {
     id: number | null;
     timestamp: number;
-    volume: TokenAmount[];
-    locked: TokenAmount[];
-    prices: TokenPrice[];
+    volume: AssetAmount[];
+    locked: AssetAmount[];
+    prices: AssetPrice[];
 }
 
 const isNumber = (amount: string) => !new BigNumber(amount).isNaN();
 
-const assertAmountIsValid = (amount: TokenAmount, where?: string) => {
+const assertAmountIsValid = (amount: AssetAmount, where?: string) => {
     if (!isNumber(amount.amount)) {
         throw new Error(
             `Invalid volume amount 'amount' in ${
@@ -57,12 +57,12 @@ const assertAmountIsValid = (amount: TokenAmount, where?: string) => {
 
 export const addVolume = <Snapshot extends ISnapshot>(
     snapshot: Snapshot,
-    amountToAdd: TokenAmount,
-    tokenPrice: TokenPrice | undefined
+    amountToAdd: AssetAmount,
+    assetPrice: AssetPrice | undefined
 ): Snapshot => {
     assertAmountIsValid(amountToAdd, "amountToAdd in addVolume");
-    if (tokenPrice) {
-        assertPriceIsValid(tokenPrice, "tokenPrice in addVolume");
+    if (assetPrice) {
+        assertPriceIsValid(assetPrice, "assetPrice in addVolume");
     }
 
     const volumeAndIndex = snapshot.volume
@@ -78,11 +78,11 @@ export const addVolume = <Snapshot extends ISnapshot>(
         let { v, i } = volumeAndIndex;
 
         if (
-            tokenPrice &&
+            assetPrice &&
             new BigNumber(v.amount).gt(0) &&
             new BigNumber(v.amountInUsd).isZero()
         ) {
-            v = applyPrice(v.chain, v.asset, v.amount, tokenPrice);
+            v = applyPrice(v.chain, v.asset, v.amount, assetPrice);
         }
 
         assertAmountIsValid(v, "v in addVolume");
@@ -104,7 +104,7 @@ export const addVolume = <Snapshot extends ISnapshot>(
             .plus(v.amountInUsd)
             .toFixed();
 
-        snapshot.volume[i] = new TokenAmount(
+        snapshot.volume[i] = new AssetAmount(
             amountToAdd.chain,
             amountToAdd.asset,
             amount,
@@ -121,7 +121,7 @@ export const addVolume = <Snapshot extends ISnapshot>(
 
 export const setLocked = <Snapshot extends ISnapshot>(
     snapshot: Snapshot,
-    amount: TokenAmount
+    amount: AssetAmount
 ) => {
     assertAmountIsValid(amount);
 
@@ -140,12 +140,12 @@ export const setLocked = <Snapshot extends ISnapshot>(
 
 export const addLocked = <Snapshot extends ISnapshot>(
     snapshot: Snapshot,
-    amountToAdd: TokenAmount,
-    tokenPrice: TokenPrice | undefined
+    amountToAdd: AssetAmount,
+    assetPrice: AssetPrice | undefined
 ) => {
     assertAmountIsValid(amountToAdd);
-    if (tokenPrice) {
-        assertPriceIsValid(tokenPrice);
+    if (assetPrice) {
+        assertPriceIsValid(assetPrice);
     }
 
     const lockedAndIndex = snapshot.locked
@@ -168,10 +168,10 @@ export const addLocked = <Snapshot extends ISnapshot>(
             amountToAdd.chain,
             amountToAdd.asset,
             amount,
-            tokenPrice
+            assetPrice
         );
 
-        snapshot.locked[i] = new TokenAmount(
+        snapshot.locked[i] = new AssetAmount(
             amountToAdd.chain,
             amountToAdd.asset,
             amount,
@@ -190,43 +190,43 @@ export const addLocked = <Snapshot extends ISnapshot>(
     return snapshot;
 };
 
-export const getTokenPrice = <Snapshot extends ISnapshot>(
+export const getAssetPrice = <Snapshot extends ISnapshot>(
     snapshot: Snapshot,
     asset: string
-): TokenPrice | undefined => snapshot.prices.find((p) => p.token === asset);
+): AssetPrice | undefined => snapshot.prices.find((p) => p.asset === asset);
 
-export const updateTokenPrice = async <Snapshot extends ISnapshot>(
+export const updateAssetPrice = async <Snapshot extends ISnapshot>(
     snapshot: Snapshot,
     asset: string,
     network: RenNetwork
 ): Promise<Snapshot> => {
-    let newTokenPrice: TokenPrice | undefined = undefined;
+    let newAssetPrice: AssetPrice | undefined = undefined;
     try {
-        newTokenPrice = await fetchTokenPrice(
+        newAssetPrice = await fetchAssetPrice(
             network,
             asset,
             moment(snapshot.timestamp * 1000)
         );
     } catch (error) {
-        console.error(extractError(error, "Unable to get token price."));
+        console.error(extractError(error, "Unable to fetch asset price."));
     }
 
     const priceAndIndex = snapshot.prices
         .map((p, i) => ({ p, i }))
-        .find(({ p }) => p.token === asset);
+        .find(({ p }) => p.asset === asset);
 
     if (priceAndIndex) {
         const { p, i } = priceAndIndex;
         const {} = snapshot.prices[i];
-        snapshot.prices[i] = new TokenPrice(
+        snapshot.prices[i] = new AssetPrice(
             asset,
             snapshot.prices[i].decimals || p.decimals || 0,
             snapshot.prices[i].priceInEth || p.priceInEth || 0,
             snapshot.prices[i].priceInBtc || p.priceInBtc || 0,
             snapshot.prices[i].priceInUsd || p.priceInUsd || 0
         );
-    } else if (newTokenPrice) {
-        snapshot.prices.push(newTokenPrice);
+    } else if (newAssetPrice) {
+        snapshot.prices.push(newAssetPrice);
     }
 
     return snapshot;

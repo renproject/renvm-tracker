@@ -1,4 +1,4 @@
-import { TokenAmount, TokenPrice } from "../src/database/models/Snapshot";
+import { AssetAmount, AssetPrice } from "../src/database/models/Snapshot";
 import {
     ISnapshot,
     addVolume,
@@ -13,13 +13,13 @@ const emptySnapshot: ISnapshot = {
     prices: [],
 };
 
-const tokenPrice = (symbol: string, usd: number) => {
-    return new TokenPrice("BTC", 10, usd / 2500, usd / 30000, usd);
+const assetPrice = (symbol: string, usd: number) => {
+    return new AssetPrice("BTC", 10, usd / 2500, usd / 30000, usd);
 };
 
 describe("snapshotUtils", () => {
     it("addVolume", () => {
-        const price = tokenPrice("BTC", 30000);
+        const price = assetPrice("BTC", 30000);
         const amount = applyPrice("Ethereum", "BTC", "1", price);
         const newSnapshot = addVolume(emptySnapshot, amount, price);
 
@@ -31,9 +31,9 @@ describe("snapshotUtils", () => {
 
     it("addLocked", () => {});
 
-    it("getTokenPrice", () => {});
+    it("getAssetPrice", () => {});
 
-    it("updateTokenPrice", () => {});
+    it("updateAssetPrice", () => {});
 
     it("parseSelector", () => {});
 });

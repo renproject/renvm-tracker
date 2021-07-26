@@ -2,7 +2,7 @@ import Axios from "axios";
 import BigNumber from "bignumber.js";
 import { Map, OrderedMap } from "immutable";
 import moment, { Moment } from "moment";
-import { TokenAmount, TokenPrice } from "../../database/models/Snapshot";
+import { AssetAmount, AssetPrice } from "../../database/models/Snapshot";
 
 import { DEFAULT_REQUEST_TIMEOUT, SECONDS, time } from "../../common/utils";
 import { magenta, yellow } from "chalk";
@@ -12,14 +12,14 @@ export const applyPrice = (
     chain: string,
     asset: string,
     amount: string,
-    price: TokenPrice | undefined
-): TokenAmount => {
+    price: AssetPrice | undefined
+): AssetAmount => {
     const shifted = price
         ? new BigNumber(amount).div(
               new BigNumber(10).exponentiatedBy(price.decimals)
           )
         : null;
-    return new TokenAmount(
+    return new AssetAmount(
         chain,
         asset,
         amount,
@@ -35,10 +35,10 @@ export const applyPrice = (
     );
 };
 
-export type TokenPrices = OrderedMap<string, TokenPrice>;
+export type AssetPrices = OrderedMap<string, AssetPrice>;
 
-export const tokenIDs: {
-    [token: string]: { decimals: number; coinGeckoID: string };
+export const assetIDs: {
+    [asset: string]: { decimals: number; coinGeckoID: string };
 } = {
     // Misc.
     ["ETH"]: {
@@ -86,18 +86,18 @@ export const tokenIDs: {
 
 const CACHE_EXPIRY = 10 * SECONDS;
 
-let priceCache = Map<string, TokenPrice>();
+let priceCache = Map<string, AssetPrice>();
 let priceCacheTimestamp = Map<string, number>();
-let historicPriceCache = Map<string, Map<string, TokenPrice>>();
+let historicPriceCache = Map<string, Map<string, AssetPrice>>();
 
 const coinGeckoURL = `https://api.coingecko.com/api/v3`;
 const coinGeckoParams = `localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
 
-export const fetchTokenPrice = async (
+export const fetchAssetPrice = async (
     network: RenNetwork,
-    token: string,
+    asset: string,
     timestamp?: Moment
-): Promise<TokenPrice | undefined> => {
+): Promise<AssetPrice | undefined> => {
     let date;
     // If from more than 1 hour ago, get historic data.
     if (timestamp && moment.duration(moment().diff(timestamp)).asHours() > 1) {
@@ -106,20 +106,20 @@ export const fetchTokenPrice = async (
 
     if (date) {
         const historicCache = historicPriceCache
-            .get(token, Map<string, TokenPrice>())
+            .get(asset, Map<string, AssetPrice>())
             .get(date);
         if (historicCache) {
             return historicCache;
         }
     }
 
-    let cached = priceCache.get(token, undefined);
-    const cachedTimestamp = priceCacheTimestamp.get(token, 0);
+    let cached = priceCache.get(asset, undefined);
+    const cachedTimestamp = priceCacheTimestamp.get(asset, 0);
     if (cached && time() - cachedTimestamp <= CACHE_EXPIRY) {
         return cached;
     }
 
-    const { decimals, coinGeckoID } = tokenIDs[token] || { decimals: 0 };
+    const { decimals, coinGeckoID } = assetIDs[asset] || { decimals: 0 };
 
     let priceInEth = 0;
     let priceInBtc = 0;
@@ -134,7 +134,7 @@ export const fetchTokenPrice = async (
         }
 
         console.log(
-            `${yellow(`[${network}]`)} Getting price for ${magenta(token)} (${
+            `${yellow(`[${network}]`)} Getting price for ${magenta(asset)} (${
                 date ? date : "now"
             })`
         );
@@ -158,32 +158,32 @@ export const fetchTokenPrice = async (
         );
     }
 
-    const tokenPrice = new TokenPrice(
-        token,
+    const assetPrice = new AssetPrice(
+        asset,
         decimals,
         priceInEth,
         priceInBtc,
         priceInUsd
     );
 
-    assertPriceIsValid(tokenPrice);
+    assertPriceIsValid(assetPrice);
 
     if (date) {
         historicPriceCache = historicPriceCache.set(
-            token,
+            asset,
             historicPriceCache
-                .get(token, Map<string, TokenPrice>())
-                .set(date, tokenPrice)
+                .get(asset, Map<string, AssetPrice>())
+                .set(date, assetPrice)
         );
     } else {
-        priceCacheTimestamp = priceCacheTimestamp.set(token, time());
-        priceCache = priceCache.set(token, tokenPrice);
+        priceCacheTimestamp = priceCacheTimestamp.set(asset, time());
+        priceCache = priceCache.set(asset, assetPrice);
     }
 
-    return tokenPrice;
+    return assetPrice;
 };
 
-export const assertPriceIsValid = (price: TokenPrice, where?: string) => {
+export const assertPriceIsValid = (price: AssetPrice, where?: string) => {
     if (isNaN(price.decimals)) {
         throw new Error(
             `Invalid price field 'decimals' in ${where || "assetPriceIsValid"}.`
