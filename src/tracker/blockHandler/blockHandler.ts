@@ -1,12 +1,11 @@
 import { TxStatus } from "@renproject/interfaces";
 import {
-    ResponseQueryMintTx,
+    unmarshalMintTx,
     unmarshalBurnTx,
-} from "@renproject/rpc/build/main/v1";
-import { unmarshalMintTx } from "@renproject/rpc/build/main/v2";
+} from "@renproject/rpc/build/main/v2";
 import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
 import BigNumber from "bignumber.js";
-import { cyan, green, magenta, red, yellow } from "chalk";
+import { blue, blueBright, cyan, green, magenta, red, yellow } from "chalk";
 import { RenVM } from "../../database/models";
 import { Connection } from "typeorm";
 import { Snapshot, getSnapshot } from "../../database/models/Snapshot";
@@ -28,6 +27,24 @@ import {
 import { applyPrice } from "../priceFetcher/PriceFetcher";
 import { RenNetwork } from "../../networks";
 
+const colorizeChain = (chain: string): string => {
+    const color =
+        chain === "Ethereum"
+            ? blue
+            : chain === "Solana"
+            ? magenta
+            : chain === "BinanceSmartChain"
+            ? yellow
+            : chain === "Fantom"
+            ? blueBright
+            : chain === "Polygon"
+            ? magenta
+            : chain === "Avalanche"
+            ? red
+            : cyan;
+    return color(chain);
+};
+
 export class BlockHandler {
     network: RenNetwork;
     connection: Connection;
@@ -46,25 +63,29 @@ export class BlockHandler {
         const transaction = transactionIn["tx"];
 
         const selector =
-            (transaction as any as ResponseQueryMintTx["tx"]).to ||
+            (transaction as any).to ||
             (transaction as ResponseQueryTx["tx"]).selector;
 
         let asset: string;
-        let token: string;
         let chain: string;
         let mintOrBurn: MintOrBurn;
         try {
-            ({ chain, asset, token, mintOrBurn } = parseSelector(selector));
+            ({ chain, asset, mintOrBurn } = parseSelector(selector));
         } catch (error) {
             if (DEBUG) {
                 console.warn(
-                    `[${yellow(this.network)}] ${red(
-                        `Unrecognized selector format ${selector}`
-                    )}`
+                    `
+                    ${yellow(
+                        `[${this.network}][block #${block.height}]`
+                    )} ${red(`Unrecognized selector format ${selector}:`)}
+                    `,
+                    error
                 );
             }
             return snapshot;
         }
+
+        const logPrefix = yellow(`[${this.network}][block #${block.height}]`);
 
         const latestLocked =
             blockState &&
@@ -75,7 +96,7 @@ export class BlockHandler {
         let amount: string | undefined;
         if (mintOrBurn === MintOrBurn.MINT) {
             let tx = unmarshalMintTx({
-                tx: transaction as any, // as ResponseQueryMintTx["tx"],
+                tx: transaction as any,
                 txStatus: TxStatus.TxStatusDone,
             });
 
@@ -100,14 +121,14 @@ export class BlockHandler {
             }
         } else {
             console.error(
-                `[${yellow(this.network)}] ${red(
-                    `Unrecognized selector format ${selector}`
+                `${logPrefix} ${red(
+                    `Skipping transaction with selector ${selector}.`
                 )}`
             );
         }
 
         if (amount) {
-            snapshot = await updateTokenPrice(snapshot, asset);
+            snapshot = await updateTokenPrice(snapshot, asset, this.network);
             const tokenPrice = getTokenPrice(snapshot, asset);
 
             const amountWithPrice = applyPrice(
@@ -127,11 +148,7 @@ export class BlockHandler {
                     tokenPrice
                 );
                 console.log(
-                    `[${yellow(
-                        this.network
-                    )}] Updating ${token} locked amount to ${
-                        latestLockedWithPrice.amount
-                    } ($${latestLockedWithPrice.amountInUsd}).`
+                    `${logPrefix} Updating ${asset} on ${chain} locked amount to ${latestLockedWithPrice.amount} ($${latestLockedWithPrice.amountInUsd}).`
                 );
                 snapshot = await setLocked(snapshot, latestLockedWithPrice);
             } else {
@@ -142,16 +159,19 @@ export class BlockHandler {
                 );
             }
 
+            const color = mintOrBurn === MintOrBurn.MINT ? green : red;
+            let amountString = new BigNumber(amountWithPrice.amount)
+                .abs()
+                .div(new BigNumber(10).exponentiatedBy(8))
+                .toFixed();
+            if (amountString.length < 15) {
+                amountString =
+                    " ".repeat(15 - amountString.length) + amountString;
+            }
             console.log(
-                `[${yellow(this.network)}] [${
-                    token === "BTC/Ethereum" ? yellow(token) : cyan(token)
-                }][${block.height}] ${
-                    mintOrBurn === MintOrBurn.MINT
-                        ? green(mintOrBurn)
-                        : red(mintOrBurn)
-                } ${new BigNumber(amountWithPrice.amount)
-                    .div(new BigNumber(10).exponentiatedBy(8))
-                    .toFixed()} ${magenta(asset)}`
+                `${logPrefix} ${color(
+                    `${mintOrBurn} ${amountString} ${asset}`
+                )} from ${colorizeChain(chain)}`
             );
         }
 

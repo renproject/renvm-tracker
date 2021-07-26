@@ -5,6 +5,8 @@ import moment, { Moment } from "moment";
 import { TokenAmount, TokenPrice } from "../../database/models/Snapshot";
 
 import { DEFAULT_REQUEST_TIMEOUT, SECONDS, time } from "../../common/utils";
+import { magenta, yellow } from "chalk";
+import { RenNetwork } from "../../networks";
 
 export const applyPrice = (
     chain: string,
@@ -92,6 +94,7 @@ const coinGeckoURL = `https://api.coingecko.com/api/v3`;
 const coinGeckoParams = `localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
 
 export const fetchTokenPrice = async (
+    network: RenNetwork,
     token: string,
     timestamp?: Moment
 ): Promise<TokenPrice | undefined> => {
@@ -130,7 +133,11 @@ export const fetchTokenPrice = async (
             url = `${coinGeckoURL}/coins/${coinGeckoID}?${coinGeckoParams}`;
         }
 
-        console.log(`Getting price for ${token} (${date ? date : "now"})`);
+        console.log(
+            `${yellow(`[${network}]`)} Getting price for ${magenta(token)} (${
+                date ? date : "now"
+            })`
+        );
 
         const response = await Axios.get<{
             market_data: { current_price: { [currency: string]: number } };

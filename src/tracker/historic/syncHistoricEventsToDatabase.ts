@@ -62,7 +62,11 @@ export const syncHistoricEventsToDatabase = async (events: List<Web3Event>) => {
             snapshot = await getSnapshot(moment(event.timestamp * 1000));
         }
 
-        snapshot = await updateTokenPrice(snapshot, event.symbol);
+        snapshot = await updateTokenPrice(
+            snapshot,
+            event.symbol,
+            event.network
+        );
         const tokenPrice = getTokenPrice(snapshot, event.symbol);
 
         const tokenAmount = applyPrice(

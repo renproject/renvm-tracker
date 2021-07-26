@@ -1,4 +1,3 @@
-import { parseV1Selector } from "@renproject/utils";
 import { OrderedMap } from "immutable";
 import BigNumber from "bignumber.js";
 import moment from "moment";
@@ -11,6 +10,7 @@ import {
 import { extractError } from "../../common/utils";
 
 import { TokenAmount, TokenPrice } from "../../database/models/Snapshot";
+import { RenNetwork } from "../../networks";
 
 export interface ISnapshot {
     id: number | null;
@@ -197,11 +197,13 @@ export const getTokenPrice = <Snapshot extends ISnapshot>(
 
 export const updateTokenPrice = async <Snapshot extends ISnapshot>(
     snapshot: Snapshot,
-    asset: string
+    asset: string,
+    network: RenNetwork
 ): Promise<Snapshot> => {
     let newTokenPrice: TokenPrice | undefined = undefined;
     try {
         newTokenPrice = await fetchTokenPrice(
+            network,
             asset,
             moment(snapshot.timestamp * 1000)
         );
@@ -235,32 +237,17 @@ export enum MintOrBurn {
     BURN = "BURN",
 }
 
-const v1ChainMap = OrderedMap<string, string>().set("Eth", "Ethereum");
-
 export const parseSelector = (
     selector: string
-): { asset: string; token: string; chain: string; mintOrBurn: MintOrBurn } => {
+): { asset: string; chain: string; mintOrBurn: MintOrBurn } => {
     const v2SelectorMatch = /^([A-Z]+)\/(from|to)(.+)$/.exec(selector);
-    if (v2SelectorMatch) {
-        const [_, asset, toOrFrom, chain] = v2SelectorMatch;
-        return {
-            asset,
-            chain,
-            token: `${asset.toUpperCase()}/${chain}`,
-            mintOrBurn: toOrFrom === "to" ? MintOrBurn.MINT : MintOrBurn.BURN,
-        };
+    if (!v2SelectorMatch) {
+        throw new Error(`Invalid selector ${selector}.`);
     }
-
-    const { asset, from, to } = parseV1Selector(selector);
-    const isMint = asset === from.toUpperCase();
-    const mintChain: string = v1ChainMap.get(
-        isMint ? to : from,
-        isMint ? to : from
-    );
+    const [_, asset, toOrFrom, chain] = v2SelectorMatch;
     return {
         asset,
-        chain: mintChain,
-        token: `${asset.toUpperCase()}/${mintChain}`,
-        mintOrBurn: isMint ? MintOrBurn.MINT : MintOrBurn.BURN,
+        chain,
+        mintOrBurn: toOrFrom === "to" ? MintOrBurn.MINT : MintOrBurn.BURN,
     };
 };
