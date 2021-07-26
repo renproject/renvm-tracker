@@ -43,9 +43,7 @@ export const runDatabase = async (
         await initializeDatabase(NETWORK);
         initialize = true;
     } catch (error) {
-        if (/duplicate key value/.exec(error.message) === null) {
-            console.error(error);
-        }
+        console.error(error);
     }
 
     console.info("Connected.");

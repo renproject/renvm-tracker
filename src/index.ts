@@ -31,14 +31,14 @@ export const main = async (
     // Connect to the database.
     const { connection, initialize } = await runDatabase(network);
 
-    if (!TRACKER_DISABLED) {
-        // Run the block watcher and block handler.
-        await runTracker(network, connection, initialize);
-    }
-
     if (!SERVER_DISABLED) {
         // Run the GraphQL server.
         runServer().catch(CRASH);
+    }
+
+    if (!TRACKER_DISABLED) {
+        // Run the block watcher and block handler.
+        await runTracker(network, connection, initialize);
     }
 };
 
