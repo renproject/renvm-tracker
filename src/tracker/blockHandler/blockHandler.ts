@@ -9,18 +9,17 @@ import BigNumber from "bignumber.js";
 import { cyan, green, magenta, red, yellow } from "chalk";
 import { RenVM } from "../../database/models";
 import { Connection } from "typeorm";
-import { Snapshot } from "../../database/models/Snapshot";
+import { Snapshot, getSnapshot } from "../../database/models/Snapshot";
 import {
     addLocked,
     addVolume,
-    getSnapshot,
     getTokenPrice,
     MintOrBurn,
     parseSelector,
     setLocked,
     updateTokenPrice,
 } from "./snapshotUtils";
-import { DEBUG } from "../../util/environmentVariables";
+import { DEBUG } from "../../common/environmentVariables";
 import {
     BlockHandlerInterface,
     BlockState,

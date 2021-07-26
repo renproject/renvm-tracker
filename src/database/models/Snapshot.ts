@@ -3,6 +3,7 @@ import {
     BaseEntity,
     Column,
     Entity,
+    LessThan,
     PrimaryGeneratedColumn,
     Unique,
 } from "typeorm";
@@ -121,3 +122,42 @@ export class Snapshot extends BaseEntity {
         this.prices = prices;
     }
 }
+
+/**
+ * Look up the snapshot for the provided timestamp. If
+ */
+export const getSnapshot = async (timestampMoment: Moment) => {
+    const timestamp = getTimestamp(timestampMoment);
+
+    let snapshot = await Snapshot.findOne({
+        timestamp: timestamp,
+    });
+    if (!snapshot) {
+        // Get latest Snapshot before timestamp.
+        const previousSnapshot: {
+            volume: TokenAmount[];
+            locked: TokenAmount[];
+            prices: TokenPrice[];
+        } = (await Snapshot.findOne({
+            where: {
+                timestamp: LessThan(timestamp),
+            },
+            order: {
+                timestamp: "DESC",
+            },
+        })) || {
+            volume: [],
+            locked: [],
+            prices: [],
+        };
+
+        snapshot = new Snapshot(
+            timestamp,
+            previousSnapshot.volume,
+            previousSnapshot.locked,
+            previousSnapshot.prices
+        );
+    }
+
+    return snapshot;
+};

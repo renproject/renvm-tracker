@@ -1,61 +1,24 @@
-import { LessThan } from "typeorm";
 import { parseV1Selector } from "@renproject/utils";
-
-import { Moment } from "moment";
 import { OrderedMap } from "immutable";
+import BigNumber from "bignumber.js";
+import moment from "moment";
+
 import {
     applyPrice,
     assertPriceIsValid,
     fetchTokenPrice,
 } from "../priceFetcher/PriceFetcher";
-import { extractError } from "../../util/utils";
-import {
-    getTimestamp,
-    Snapshot,
-    TokenAmount,
-    TokenPrice,
-} from "../../database/models/Snapshot";
-import BigNumber from "bignumber.js";
-import moment from "moment";
+import { extractError } from "../../common/utils";
 
-/**
- * Look up the snapshot for the provided timestamp. If
- */
-export const getSnapshot = async (timestampMoment: Moment) => {
-    const timestamp = getTimestamp(timestampMoment);
+import { TokenAmount, TokenPrice } from "../../database/models/Snapshot";
 
-    let snapshot = await Snapshot.findOne({
-        timestamp: timestamp,
-    });
-    if (!snapshot) {
-        // Get latest Snapshot before timestamp.
-        const previousSnapshot: {
-            volume: TokenAmount[];
-            locked: TokenAmount[];
-            prices: TokenPrice[];
-        } = (await Snapshot.findOne({
-            where: {
-                timestamp: LessThan(timestamp),
-            },
-            order: {
-                timestamp: "DESC",
-            },
-        })) || {
-            volume: [],
-            locked: [],
-            prices: [],
-        };
-
-        snapshot = new Snapshot(
-            timestamp,
-            previousSnapshot.volume,
-            previousSnapshot.locked,
-            previousSnapshot.prices
-        );
-    }
-
-    return snapshot;
-};
+export interface ISnapshot {
+    id: number | null;
+    timestamp: number;
+    volume: TokenAmount[];
+    locked: TokenAmount[];
+    prices: TokenPrice[];
+}
 
 const isNumber = (amount: string) => !new BigNumber(amount).isNaN();
 
@@ -92,11 +55,11 @@ const assertAmountIsValid = (amount: TokenAmount, where?: string) => {
     return true;
 };
 
-export const addVolume = (
+export const addVolume = <Snapshot extends ISnapshot>(
     snapshot: Snapshot,
     amountToAdd: TokenAmount,
     tokenPrice: TokenPrice | undefined
-) => {
+): Snapshot => {
     assertAmountIsValid(amountToAdd, "amountToAdd in addVolume");
     if (tokenPrice) {
         assertPriceIsValid(tokenPrice, "tokenPrice in addVolume");
@@ -156,8 +119,8 @@ export const addVolume = (
     return snapshot;
 };
 
-export const setLocked = <T extends Snapshot>(
-    snapshot: T,
+export const setLocked = <Snapshot extends ISnapshot>(
+    snapshot: Snapshot,
     amount: TokenAmount
 ) => {
     assertAmountIsValid(amount);
@@ -175,8 +138,8 @@ export const setLocked = <T extends Snapshot>(
     return snapshot;
 };
 
-export const addLocked = <T extends Snapshot>(
-    snapshot: T,
+export const addLocked = <Snapshot extends ISnapshot>(
+    snapshot: Snapshot,
     amountToAdd: TokenAmount,
     tokenPrice: TokenPrice | undefined
 ) => {
@@ -227,12 +190,12 @@ export const addLocked = <T extends Snapshot>(
     return snapshot;
 };
 
-export const getTokenPrice = (
+export const getTokenPrice = <Snapshot extends ISnapshot>(
     snapshot: Snapshot,
     asset: string
 ): TokenPrice | undefined => snapshot.prices.find((p) => p.token === asset);
 
-export const updateTokenPrice = async (
+export const updateTokenPrice = async <Snapshot extends ISnapshot>(
     snapshot: Snapshot,
     asset: string
 ): Promise<Snapshot> => {

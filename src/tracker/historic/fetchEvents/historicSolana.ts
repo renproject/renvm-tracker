@@ -1,4 +1,4 @@
-import { Solana, SolanaClass } from "@renproject/chains";
+import { Solana, SolanaClass } from "@renproject/chains-solana";
 import { RenNetwork } from "@renproject/interfaces";
 import { List } from "immutable";
 import { HistoricEvent } from "../types";

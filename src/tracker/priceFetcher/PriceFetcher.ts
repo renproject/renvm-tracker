@@ -4,7 +4,7 @@ import { Map, OrderedMap } from "immutable";
 import moment, { Moment } from "moment";
 import { TokenAmount, TokenPrice } from "../../database/models/Snapshot";
 
-import { DEFAULT_REQUEST_TIMEOUT, SECONDS, time } from "../../util/utils";
+import { DEFAULT_REQUEST_TIMEOUT, SECONDS, time } from "../../common/utils";
 
 export const applyPrice = (
     chain: string,

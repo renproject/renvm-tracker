@@ -1,8 +1,9 @@
-import { readFile } from "fs/promises";
+import { readFile } from "fs";
+import { promisify } from "util";
 import { List } from "immutable";
 import { Connection } from "typeorm";
 
-import { CRASH } from "../util/utils";
+import { CRASH } from "../common/utils";
 import { BlockHandler } from "./blockHandler/blockHandler";
 import {
     INPUT_FILE,
@@ -12,6 +13,8 @@ import {
 import { BlockWatcher } from "./blockWatcher/blockWatcher";
 import { RenNetwork } from "../networks";
 
+const readFileAsync = promisify(readFile);
+
 export const runTracker = async (
     network: RenNetwork.Mainnet | RenNetwork.Testnet,
     connection: Connection,
@@ -19,7 +22,7 @@ export const runTracker = async (
 ) => {
     // Checks if it needs to load the historic events into the database.
     if (initialize) {
-        const finalData = await readFile(INPUT_FILE, "utf-8");
+        const finalData = await readFileAsync(INPUT_FILE, "utf-8");
         const eventArray = JSON.parse(finalData) as Web3Event[];
         const eventList = List(eventArray).sortBy((event) => event.timestamp);
 

@@ -5,7 +5,7 @@ import express from "express";
 import { buildSchema } from "type-graphql";
 import cors from "cors";
 
-import { PORT } from "../util/environmentVariables";
+import { PORT } from "../common/environmentVariables";
 import { Resolvers } from "./schema/Resolvers";
 
 export const runServer = async () => {

@@ -3,9 +3,9 @@ import {
     NETWORK,
     SERVER_DISABLED,
     TRACKER_DISABLED,
-} from "./util/environmentVariables";
+} from "./common/environmentVariables";
 import { runServer } from "./graphql/server";
-import { CRASH } from "./util/utils";
+import { CRASH } from "./common/utils";
 import { runTracker } from "./tracker";
 import { RenNetwork } from "./networks";
 

@@ -1,6 +1,6 @@
 import { PostgresConnectionOptions } from "typeorm/driver/postgres/PostgresConnectionOptions";
 
-import { DATABASE_URL } from "../util/environmentVariables";
+import { DATABASE_URL } from "../common/environmentVariables";
 import { RenVM, Snapshot } from "./models";
 
 export const typeOrmConfig: PostgresConnectionOptions = {

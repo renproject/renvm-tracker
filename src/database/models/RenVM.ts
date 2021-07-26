@@ -10,7 +10,7 @@ import { RenNetwork } from "../../networks";
 
 @Entity()
 @ObjectType()
-@Unique(["name"])
+@Unique(["network"])
 export class RenVM extends BaseEntity {
     @Field(() => ID)
     @PrimaryGeneratedColumn()

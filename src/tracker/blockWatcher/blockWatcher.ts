@@ -12,7 +12,7 @@ import { RenVMProvider } from "@renproject/rpc/build/main/v2/renVMProvider";
 import { RenVM } from "../../database/models";
 import { RenNetwork } from "../../networks";
 import { BlockState, CommonBlock, BlockHandlerInterface } from "./events";
-import { SECONDS, sleep } from "../../util/utils";
+import { SECONDS, sleep } from "../../common/utils";
 
 export class BlockWatcher {
     batchSize = 16;

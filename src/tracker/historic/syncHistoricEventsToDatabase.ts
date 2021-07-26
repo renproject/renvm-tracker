@@ -1,4 +1,9 @@
-import { getTimestamp, Snapshot, TokenPrice } from "../../database/models";
+import {
+    getSnapshot,
+    getTimestamp,
+    Snapshot,
+    TokenPrice,
+} from "../../database/models";
 import { RenNetwork } from "../../networks";
 import { applyPrice } from "../priceFetcher/PriceFetcher";
 import moment from "moment";
@@ -7,7 +12,6 @@ import { List } from "immutable";
 import {
     addLocked,
     addVolume,
-    getSnapshot,
     getTokenPrice,
     updateTokenPrice,
 } from "../blockHandler/snapshotUtils";
