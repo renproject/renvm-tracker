@@ -1,6 +1,6 @@
 import { getSnapshot, getTimestamp, Snapshot } from "../../database/models";
 import { RenNetwork } from "../../networks";
-import { applyPrice } from "../priceFetcher/PriceFetcher";
+import { applyPriceWithChain } from "../priceFetcher/PriceFetcher";
 import moment from "moment";
 import BigNumber from "bignumber.js";
 import { List } from "immutable";
@@ -54,7 +54,7 @@ export const syncHistoricEventsToDatabase = async (events: List<Web3Event>) => {
         snapshot = await updateAssetPrice(snapshot, asset, event.network);
         const assetPrice = getAssetPrice(snapshot, asset);
 
-        const assetAmount = applyPrice(
+        const assetAmount = applyPriceWithChain(
             event.chain,
             asset,
             event.amount,

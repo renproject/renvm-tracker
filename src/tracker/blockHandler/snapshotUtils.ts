@@ -3,26 +3,34 @@ import BigNumber from "bignumber.js";
 import moment from "moment";
 
 import {
-    applyPrice,
+    applyPriceWithChain,
     assertPriceIsValid,
     fetchAssetPrice,
 } from "../priceFetcher/PriceFetcher";
 import { extractError, SECONDS, sleep } from "../../common/utils";
 
-import { AssetAmount, AssetPrice } from "../../database/models/Snapshot";
+import {
+    AssetAmount,
+    AssetAmountWithChain,
+    AssetPrice,
+} from "../../database/models/Snapshot";
 import { RenNetwork } from "../../networks";
 
 export interface ISnapshot {
     id: number | null;
     timestamp: number;
-    volume: AssetAmount[];
-    locked: AssetAmount[];
+    volume: AssetAmountWithChain[];
+    locked: AssetAmountWithChain[];
     prices: AssetPrice[];
+    fees: AssetAmount[];
 }
 
 const isNumber = (amount: string) => !new BigNumber(amount).isNaN();
 
-const assertAmountIsValid = (amount: AssetAmount, where?: string) => {
+const assertAmountIsValid = (
+    amount: AssetAmountWithChain | AssetAmount,
+    where?: string
+) => {
     if (!isNumber(amount.amount)) {
         throw new Error(
             `Invalid volume amount 'amount' in ${
@@ -57,7 +65,7 @@ const assertAmountIsValid = (amount: AssetAmount, where?: string) => {
 
 export const addVolume = <Snapshot extends ISnapshot>(
     snapshot: Snapshot,
-    amountToAdd: AssetAmount,
+    amountToAdd: AssetAmountWithChain,
     assetPrice: AssetPrice | undefined
 ): Snapshot => {
     assertAmountIsValid(amountToAdd, "amountToAdd in addVolume");
@@ -82,7 +90,7 @@ export const addVolume = <Snapshot extends ISnapshot>(
             new BigNumber(v.amount).gt(0) &&
             new BigNumber(v.amountInUsd).isZero()
         ) {
-            v = applyPrice(v.chain, v.asset, v.amount, assetPrice);
+            v = applyPriceWithChain(v.chain, v.asset, v.amount, assetPrice);
         }
 
         assertAmountIsValid(v, "v in addVolume");
@@ -104,7 +112,7 @@ export const addVolume = <Snapshot extends ISnapshot>(
             .plus(v.amountInUsd)
             .toFixed();
 
-        snapshot.volume[i] = new AssetAmount(
+        snapshot.volume[i] = new AssetAmountWithChain(
             amountToAdd.chain,
             amountToAdd.asset,
             amount,
@@ -119,9 +127,16 @@ export const addVolume = <Snapshot extends ISnapshot>(
     return snapshot;
 };
 
+export const getLocked = <Snapshot extends ISnapshot>(
+    snapshot: Snapshot,
+    chain: string,
+    asset: string
+): AssetAmountWithChain | undefined =>
+    snapshot.locked.find((l) => l.asset === asset && l.chain === chain);
+
 export const setLocked = <Snapshot extends ISnapshot>(
     snapshot: Snapshot,
-    amount: AssetAmount
+    amount: AssetAmountWithChain
 ) => {
     assertAmountIsValid(amount);
 
@@ -140,7 +155,7 @@ export const setLocked = <Snapshot extends ISnapshot>(
 
 export const addLocked = <Snapshot extends ISnapshot>(
     snapshot: Snapshot,
-    amountToAdd: AssetAmount,
+    amountToAdd: AssetAmountWithChain,
     assetPrice: AssetPrice | undefined
 ) => {
     assertAmountIsValid(amountToAdd);
@@ -164,14 +179,14 @@ export const addLocked = <Snapshot extends ISnapshot>(
             .plus(amountToAdd.amount)
             .toFixed();
 
-        const { amountInEth, amountInBtc, amountInUsd } = applyPrice(
+        const { amountInEth, amountInBtc, amountInUsd } = applyPriceWithChain(
             amountToAdd.chain,
             amountToAdd.asset,
             amount,
             assetPrice
         );
 
-        snapshot.locked[i] = new AssetAmount(
+        snapshot.locked[i] = new AssetAmountWithChain(
             amountToAdd.chain,
             amountToAdd.asset,
             amount,
@@ -185,6 +200,25 @@ export const addLocked = <Snapshot extends ISnapshot>(
         assertAmountIsValid(snapshot.locked[i], "locked[i] in addVolume");
     } else {
         snapshot.locked.push(amountToAdd);
+    }
+
+    return snapshot;
+};
+
+export const setFees = <Snapshot extends ISnapshot>(
+    snapshot: Snapshot,
+    amount: AssetAmount
+) => {
+    assertAmountIsValid(amount);
+
+    const volumeAndIndex = snapshot.fees
+        .map((v, i) => ({ v, i }))
+        .find(({ v }) => v.asset === amount.asset);
+
+    if (volumeAndIndex) {
+        snapshot.fees[volumeAndIndex.i] = amount;
+    } else {
+        snapshot.fees.push(amount);
     }
 
     return snapshot;

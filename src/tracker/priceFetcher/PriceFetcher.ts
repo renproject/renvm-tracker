@@ -2,14 +2,44 @@ import Axios from "axios";
 import BigNumber from "bignumber.js";
 import { Map, OrderedMap } from "immutable";
 import moment, { Moment } from "moment";
-import { AssetAmount, AssetPrice } from "../../database/models/Snapshot";
+import {
+    AssetAmount,
+    AssetAmountWithChain,
+    AssetPrice,
+} from "../../database/models/Snapshot";
 
 import { DEFAULT_REQUEST_TIMEOUT, SECONDS, time } from "../../common/utils";
 import { magenta, yellow } from "chalk";
 import { RenNetwork } from "../../networks";
 
-export const applyPrice = (
+export const applyPriceWithChain = (
     chain: string,
+    asset: string,
+    amount: string,
+    price: AssetPrice | undefined
+): AssetAmountWithChain => {
+    const shifted = price
+        ? new BigNumber(amount).div(
+              new BigNumber(10).exponentiatedBy(price.decimals)
+          )
+        : null;
+    return new AssetAmountWithChain(
+        chain,
+        asset,
+        amount,
+        price && shifted
+            ? shifted.times(price.priceInEth).decimalPlaces(8).toFixed()
+            : new BigNumber(0).toFixed(),
+        price && shifted
+            ? shifted.times(price.priceInBtc).decimalPlaces(8).toFixed()
+            : new BigNumber(0).toFixed(),
+        price && shifted
+            ? shifted.times(price.priceInUsd).decimalPlaces(2).toFixed()
+            : new BigNumber(0).toFixed()
+    );
+};
+
+export const applyPrice = (
     asset: string,
     amount: string,
     price: AssetPrice | undefined
@@ -20,7 +50,6 @@ export const applyPrice = (
           )
         : null;
     return new AssetAmount(
-        chain,
         asset,
         amount,
         price && shifted

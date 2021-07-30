@@ -13,8 +13,10 @@ import {
     addLocked,
     addVolume,
     getAssetPrice,
+    getLocked,
     MintOrBurn,
     parseSelector,
+    setFees,
     setLocked,
     updateAssetPrice,
 } from "./snapshotUtils";
@@ -24,7 +26,7 @@ import {
     BlockState,
     CommonBlock,
 } from "../blockWatcher/events";
-import { applyPrice } from "../priceFetcher/PriceFetcher";
+import { applyPrice, applyPriceWithChain } from "../priceFetcher/PriceFetcher";
 import { RenNetwork } from "../../networks";
 
 const colorizeChain = (chain: string): string => {
@@ -56,9 +58,8 @@ export class BlockHandler {
 
     transactionHandler = async (
         snapshot: Snapshot,
-        transactionIn: ResponseQueryTx,
         block: CommonBlock,
-        blockState?: BlockState
+        transactionIn: ResponseQueryTx
     ) => {
         const transaction = transactionIn["tx"];
 
@@ -86,12 +87,6 @@ export class BlockHandler {
         }
 
         const logPrefix = yellow(`[${this.network}][block #${block.height}]`);
-
-        const latestLocked =
-            blockState &&
-            blockState[asset].minted.filter(
-                (amount) => amount.chain === chain
-            )[0]?.amount;
 
         let amount: string | undefined;
         if (mintOrBurn === MintOrBurn.MINT) {
@@ -131,7 +126,7 @@ export class BlockHandler {
             snapshot = await updateAssetPrice(snapshot, asset, this.network);
             const assetPrice = getAssetPrice(snapshot, asset);
 
-            const amountWithPrice = applyPrice(
+            const amountWithPrice = applyPriceWithChain(
                 chain,
                 asset,
                 amount,
@@ -139,25 +134,7 @@ export class BlockHandler {
             );
 
             snapshot = await addVolume(snapshot, amountWithPrice, assetPrice);
-
-            if (latestLocked) {
-                const latestLockedWithPrice = applyPrice(
-                    chain,
-                    asset,
-                    latestLocked.toFixed(),
-                    assetPrice
-                );
-                console.log(
-                    `${logPrefix} Updating ${asset} on ${chain} locked amount to ${latestLockedWithPrice.amount} ($${latestLockedWithPrice.amountInUsd}).`
-                );
-                snapshot = await setLocked(snapshot, latestLockedWithPrice);
-            } else {
-                snapshot = await addLocked(
-                    snapshot,
-                    amountWithPrice,
-                    assetPrice
-                );
-            }
+            snapshot = await addLocked(snapshot, amountWithPrice, assetPrice);
 
             const color = mintOrBurn === MintOrBurn.MINT ? green : red;
             let amountString = new BigNumber(amountWithPrice.amount)
@@ -178,6 +155,61 @@ export class BlockHandler {
         return snapshot;
     };
 
+    blockStateHandler = async (
+        snapshot: Snapshot,
+        block: CommonBlock,
+        blockState: BlockState
+    ) => {
+        const logPrefix = yellow(`[${this.network}][block #${block.height}]`);
+
+        for (const asset of Object.keys(blockState)) {
+            const assetState = blockState[asset];
+            snapshot = await updateAssetPrice(snapshot, asset, this.network);
+            const assetPrice = getAssetPrice(snapshot, asset);
+
+            // Locked amounts.
+            for (const { amount, chain } of assetState.minted) {
+                const latestLockedWithPrice = applyPriceWithChain(
+                    chain,
+                    asset,
+                    amount.toFixed(),
+                    assetPrice
+                );
+                const existingLocked = await getLocked(snapshot, chain, asset);
+                snapshot = await setLocked(snapshot, latestLockedWithPrice);
+
+                // Check if the amount itself (not just the prices) changed.
+                if (
+                    existingLocked &&
+                    existingLocked.amount !== latestLockedWithPrice.amount
+                ) {
+                    console.log(
+                        `${logPrefix} Updating ${asset} on ${chain} locked amount from ${existingLocked.amount} to ${latestLockedWithPrice.amount} ($${latestLockedWithPrice.amountInUsd}).`
+                    );
+                }
+            }
+
+            // Fees
+            {
+                // Sum up epoch fees.
+                const epochSum = assetState.fees.epochs.reduce(
+                    (sum, epoch) => sum.plus(epoch.amount),
+                    new BigNumber(0)
+                );
+
+                const feesTotal = epochSum.plus(assetState.fees.unassigned);
+
+                const feesTotalWithPrice = applyPrice(
+                    asset,
+                    feesTotal.toFixed(),
+                    assetPrice
+                );
+
+                snapshot = await setFees(snapshot, feesTotalWithPrice);
+            }
+        }
+    };
+
     blockHandler: BlockHandlerInterface = async (
         renVM: RenVM,
         block: CommonBlock,
@@ -189,10 +221,17 @@ export class BlockHandler {
             for (let transaction of block.transactions) {
                 snapshot = await this.transactionHandler(
                     snapshot,
-                    transaction,
                     block,
-                    blockState
+                    transaction
                 );
+            }
+
+            if (blockState) {
+                try {
+                    await this.blockStateHandler(snapshot, block, blockState);
+                } catch (error) {
+                    console.error(error);
+                }
             }
 
             // Save snapshot and renVM database entries atomically.

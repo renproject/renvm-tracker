@@ -13,6 +13,14 @@ export interface CommonBlock {
 export interface BlockState {
     [asset: string]: {
         minted: Array<{ amount: BigNumber; chain: string }>;
+        fees: {
+            epochs: Array<{
+                amount: BigNumber;
+                epoch: BigNumber;
+                numNodes: BigNumber;
+            }>;
+            unassigned: BigNumber;
+        };
     };
 }
 
