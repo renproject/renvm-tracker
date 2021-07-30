@@ -10,6 +10,7 @@ import {
 
 import { Moment } from "moment";
 import { ColumnCommonOptions } from "typeorm/decorator/options/ColumnCommonOptions";
+import moment from "moment";
 
 export const TIME_BLOCK_LENGTH = 300; // 5 minutes
 
@@ -85,6 +86,14 @@ export const JSONTransformer: ColumnCommonOptions = {
     },
 };
 
+// Convert a unix timestamp to a human-readable representation. Seconds are not
+// included.
+// e.g. timestampString(1627611153) = "2021 July 30th, 2:12am (UTC)"
+const timestampString = (timestamp: number): string =>
+    moment(timestamp * 1000)
+        .utc()
+        .format("YYYY MMMM Do, h:mma (UTC)");
+
 @Entity()
 @ObjectType()
 @Unique(["timestamp"])
@@ -96,6 +105,10 @@ export class Snapshot extends BaseEntity {
     @Field(() => Number)
     @Column()
     timestamp: number;
+
+    @Field(() => String)
+    @Column("varchar")
+    timestampString: string;
 
     @Field(() => [AssetAmount])
     @Column("varchar", JSONTransformer)
@@ -117,6 +130,7 @@ export class Snapshot extends BaseEntity {
     ) {
         super();
         this.timestamp = time ? getTimestamp(time) : 0;
+        this.timestampString = timestampString(this.timestamp);
         this.volume = volume;
         this.locked = locked;
         this.prices = prices;
