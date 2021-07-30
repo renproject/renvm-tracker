@@ -269,10 +269,10 @@ export const updateAssetPrice = async <Snapshot extends ISnapshot>(
         const {} = snapshot.prices[i];
         snapshot.prices[i] = new AssetPrice(
             asset,
-            snapshot.prices[i].decimals || p.decimals || 0,
-            snapshot.prices[i].priceInEth || p.priceInEth || 0,
-            snapshot.prices[i].priceInBtc || p.priceInBtc || 0,
-            snapshot.prices[i].priceInUsd || p.priceInUsd || 0
+            newAssetPrice ? newAssetPrice.decimals : p.decimals || 0,
+            newAssetPrice ? newAssetPrice.priceInEth : p.priceInEth || 0,
+            newAssetPrice ? newAssetPrice.priceInBtc : p.priceInBtc || 0,
+            newAssetPrice ? newAssetPrice.priceInUsd : p.priceInUsd || 0
         );
     } else if (newAssetPrice) {
         snapshot.prices.push(newAssetPrice);
