@@ -1,9 +1,4 @@
-import {
-    getSnapshot,
-    getTimestamp,
-    Snapshot,
-    AssetPrice,
-} from "../../database/models";
+import { getSnapshot, getTimestamp, Snapshot } from "../../database/models";
 import { RenNetwork } from "../../networks";
 import { applyPrice } from "../priceFetcher/PriceFetcher";
 import moment from "moment";
@@ -44,34 +39,24 @@ export const syncHistoricEventsToDatabase = async (events: List<Web3Event>) => {
             continue;
         }
 
-        if (event.network === "mainnet" && event.symbol === "BTC") {
-            total = total.plus(event.amount);
-            console.log(
-                "total",
-                total.dividedBy(new BigNumber(10).exponentiatedBy(8)).toFixed()
-            );
-        }
+        const asset = event.symbol;
 
         if (
             !snapshot ||
             snapshot.timestamp !== getTimestamp(moment(event.timestamp * 1000))
         ) {
             if (snapshot) {
-                snapshot.save();
+                await snapshot.save();
             }
             snapshot = await getSnapshot(moment(event.timestamp * 1000));
         }
 
-        snapshot = await updateAssetPrice(
-            snapshot,
-            event.symbol,
-            event.network
-        );
-        const assetPrice = getAssetPrice(snapshot, event.symbol);
+        snapshot = await updateAssetPrice(snapshot, asset, event.network);
+        const assetPrice = getAssetPrice(snapshot, asset);
 
         const assetAmount = applyPrice(
             event.chain,
-            event.symbol,
+            asset,
             event.amount,
             assetPrice
         );

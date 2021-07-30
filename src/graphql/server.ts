@@ -23,10 +23,9 @@ export const runServer = async () => {
 
     apolloServer.applyMiddleware({ app, path: "/" });
 
-    app.listen(PORT, () => console.log(`Server started on port ${PORT}.`));
-    await new Promise<void>((resolve) => app.listen({ port: 4000 }, resolve));
+    await new Promise<void>((resolve) => app.listen({ port: PORT }, resolve));
 
     console.log(
-        `Server ready at http://localhost:4000${apolloServer.graphqlPath}`
+        `Server ready at http://localhost:${PORT}${apolloServer.graphqlPath}`
     );
 };

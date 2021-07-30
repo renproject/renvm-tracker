@@ -7,7 +7,7 @@ import {
     assertPriceIsValid,
     fetchAssetPrice,
 } from "../priceFetcher/PriceFetcher";
-import { extractError } from "../../common/utils";
+import { extractError, SECONDS, sleep } from "../../common/utils";
 
 import { AssetAmount, AssetPrice } from "../../database/models/Snapshot";
 import { RenNetwork } from "../../networks";
@@ -201,14 +201,29 @@ export const updateAssetPrice = async <Snapshot extends ISnapshot>(
     network: RenNetwork
 ): Promise<Snapshot> => {
     let newAssetPrice: AssetPrice | undefined = undefined;
-    try {
-        newAssetPrice = await fetchAssetPrice(
-            network,
-            asset,
-            moment(snapshot.timestamp * 1000)
-        );
-    } catch (error) {
-        console.error(extractError(error, "Unable to fetch asset price."));
+    while (true) {
+        try {
+            newAssetPrice = await fetchAssetPrice(
+                network,
+                asset,
+                moment(snapshot.timestamp * 1000)
+            );
+            break;
+        } catch (error) {
+            const errorMessage = extractError(
+                error,
+                "Unable to fetch asset price."
+            );
+            if (errorMessage === "Throttled") {
+                const delay = 10;
+                console.error(
+                    `Throttled by price API, sleeping for ${delay} seconds...`
+                );
+                await sleep(delay * SECONDS);
+            } else {
+                throw error;
+            }
+        }
     }
 
     const priceAndIndex = snapshot.prices
