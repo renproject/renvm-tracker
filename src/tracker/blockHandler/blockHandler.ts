@@ -159,7 +159,7 @@ export class BlockHandler {
         snapshot: Snapshot,
         block: CommonBlock,
         blockState: BlockState
-    ) => {
+    ): Promise<Snapshot> => {
         const logPrefix = yellow(`[${this.network}][block #${block.height}]`);
 
         for (const asset of Object.keys(blockState)) {
@@ -168,29 +168,38 @@ export class BlockHandler {
             const assetPrice = getAssetPrice(snapshot, asset);
 
             // Locked amounts.
-            for (const { amount, chain } of assetState.minted) {
-                const latestLockedWithPrice = applyPriceWithChain(
-                    chain,
-                    asset,
-                    amount.toFixed(),
-                    assetPrice
-                );
-                const existingLocked = await getLocked(snapshot, chain, asset);
-                snapshot = await setLocked(snapshot, latestLockedWithPrice);
-
-                // Check if the amount itself (not just the prices) changed.
-                if (
-                    existingLocked &&
-                    existingLocked.amount !== latestLockedWithPrice.amount
-                ) {
-                    console.log(
-                        `${logPrefix} Updating ${asset} on ${chain} locked amount from ${existingLocked.amount} to ${latestLockedWithPrice.amount} ($${latestLockedWithPrice.amountInUsd}).`
+            if (assetState.minted) {
+                for (const { amount, chain } of assetState.minted) {
+                    const latestLockedWithPrice = applyPriceWithChain(
+                        chain,
+                        asset,
+                        amount.toFixed(),
+                        assetPrice
                     );
+                    const existingLocked = await getLocked(
+                        snapshot,
+                        chain,
+                        asset
+                    );
+                    snapshot = await setLocked(snapshot, latestLockedWithPrice);
+
+                    // Check if the amount itself (not just the prices) changed.
+                    if (
+                        existingLocked &&
+                        existingLocked.amount !== latestLockedWithPrice.amount
+                    ) {
+                        console.log(
+                            `${logPrefix} Updating ${asset} on ${chain} ` +
+                                `locked amount from ${existingLocked.amount} ` +
+                                `to ${latestLockedWithPrice.amount} ` +
+                                `($${latestLockedWithPrice.amountInUsd}).`
+                        );
+                    }
                 }
             }
 
             // Fees
-            {
+            if (assetState.fees) {
                 // Sum up epoch fees.
                 const epochSum = assetState.fees.epochs.reduce(
                     (sum, epoch) => sum.plus(epoch.amount),
@@ -208,6 +217,8 @@ export class BlockHandler {
                 snapshot = await setFees(snapshot, feesTotalWithPrice);
             }
         }
+
+        return snapshot;
     };
 
     blockHandler: BlockHandlerInterface = async (
@@ -228,7 +239,11 @@ export class BlockHandler {
 
             if (blockState) {
                 try {
-                    await this.blockStateHandler(snapshot, block, blockState);
+                    snapshot = await this.blockStateHandler(
+                        snapshot,
+                        block,
+                        blockState
+                    );
                 } catch (error) {
                     console.error(error);
                 }
