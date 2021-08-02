@@ -13,7 +13,7 @@ export const runServer = async () => {
         resolvers: [Resolvers],
     });
 
-    const apolloServer = new ApolloServer({ schema });
+    const apolloServer = new ApolloServer({ schema, introspection: true });
     await apolloServer.start();
 
     const app = express();

@@ -12,6 +12,7 @@ import { Snapshot, getSnapshot } from "../../database/models/Snapshot";
 import {
     addLocked,
     addVolume,
+    assertAmountIsValid,
     getAssetPrice,
     getLocked,
     MintOrBurn,
@@ -99,7 +100,12 @@ export class BlockHandler {
                 tx.out &&
                 (tx.out.revert === undefined || (tx.out.revert as any) === "")
             ) {
-                amount = new BigNumber((tx.out as any).amount).toFixed();
+                const amountBN = new BigNumber((tx.out as any).amount);
+                if (amountBN.isNaN()) {
+                    console.debug(logPrefix, JSON.stringify(tx));
+                    throw new Error(`Invalid mint amount ${tx.out}`);
+                }
+                amount = amountBN.toFixed();
             }
         } else if (mintOrBurn === MintOrBurn.BURN) {
             let tx = unmarshalBurnTx({
@@ -112,7 +118,12 @@ export class BlockHandler {
                 ((tx.out as any).revert === undefined ||
                     (tx.out as any).revert === "")
             ) {
-                amount = new BigNumber(tx.in.amount).negated().toFixed();
+                const amountBN = new BigNumber(tx.in.amount).negated();
+                if (amountBN.isNaN()) {
+                    console.debug(logPrefix, JSON.stringify(tx));
+                    throw new Error(`Invalid burn amount ${tx.out}`);
+                }
+                amount = amountBN.toFixed();
             }
         } else {
             console.error(
@@ -120,6 +131,7 @@ export class BlockHandler {
                     `Skipping transaction with selector ${selector}.`
                 )}`
             );
+            return snapshot;
         }
 
         if (amount) {
@@ -131,6 +143,12 @@ export class BlockHandler {
                 asset,
                 amount,
                 assetPrice
+            );
+
+            assertAmountIsValid(
+                amountWithPrice,
+                "amountWithPrice in transactionHandler",
+                [logPrefix, chain, asset, amount, assetPrice]
             );
 
             snapshot = await addVolume(snapshot, amountWithPrice, assetPrice);
@@ -163,6 +181,10 @@ export class BlockHandler {
         const logPrefix = yellow(`[${this.network}][block #${block.height}]`);
 
         for (const asset of Object.keys(blockState)) {
+            if (asset === "System") {
+                continue;
+            }
+
             const assetState = blockState[asset];
             snapshot = await updateAssetPrice(snapshot, asset, this.network);
             const assetPrice = getAssetPrice(snapshot, asset);

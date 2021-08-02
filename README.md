@@ -13,6 +13,8 @@ The volume in a `Snapshot` is the total since the network came online, so to get
 
 You can request multiple snapshots in a single request by using labels (see the label `snapshot1` below).
 
+The `fees` field is only available for snapshots from August 2021 onwards.
+
 ```
 {
   snapshot1: Snapshot(timestamp: "1627300267") {
@@ -27,6 +29,11 @@ You can request multiple snapshots in a single request by using labels (see the 
     volume {
       asset
       chain
+      amount
+      amountInUsd
+    }
+    fees {
+      asset
       amount
       amountInUsd
     }

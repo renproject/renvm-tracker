@@ -27,11 +27,13 @@ export interface ISnapshot {
 
 const isNumber = (amount: string) => !new BigNumber(amount).isNaN();
 
-const assertAmountIsValid = (
+export const assertAmountIsValid = (
     amount: AssetAmountWithChain | AssetAmount,
-    where?: string
+    where?: string,
+    debugInformation?: any[]
 ) => {
     if (!isNumber(amount.amount)) {
+        console.debug(where, JSON.stringify(amount), debugInformation);
         throw new Error(
             `Invalid volume amount 'amount' in ${
                 where || "assertAmountIsValid"
@@ -39,6 +41,7 @@ const assertAmountIsValid = (
         );
     }
     if (!isNumber(amount.amountInEth)) {
+        console.debug(where, JSON.stringify(amount), debugInformation);
         throw new Error(
             `Invalid volume amount 'amountInEth' in ${
                 where || "assertAmountIsValid"
@@ -46,6 +49,7 @@ const assertAmountIsValid = (
         );
     }
     if (!isNumber(amount.amountInBtc)) {
+        console.debug(where, JSON.stringify(amount), debugInformation);
         throw new Error(
             `Invalid volume amount 'amountInBtc' in ${
                 where || "assertAmountIsValid"
@@ -53,6 +57,7 @@ const assertAmountIsValid = (
         );
     }
     if (!isNumber(amount.amountInUsd)) {
+        console.debug(where, JSON.stringify(amount), debugInformation);
         throw new Error(
             `Invalid volume amount 'amountInUsd' in ${
                 where || "assertAmountIsValid"
@@ -68,7 +73,7 @@ export const addVolume = <Snapshot extends ISnapshot>(
     amountToAdd: AssetAmountWithChain,
     assetPrice: AssetPrice | undefined
 ): Snapshot => {
-    assertAmountIsValid(amountToAdd, "amountToAdd in addVolume");
+    assertAmountIsValid(amountToAdd, "amountToAdd in addVolume", [assetPrice]);
     if (assetPrice) {
         assertPriceIsValid(assetPrice, "assetPrice in addVolume");
     }
@@ -248,7 +253,10 @@ export const updateAssetPrice = async <Snapshot extends ISnapshot>(
                 error,
                 "Unable to fetch asset price."
             );
-            if (errorMessage === "Throttled") {
+            if (
+                errorMessage === "Throttled" ||
+                /too many requests/.exec(errorMessage)
+            ) {
                 const delay = 10;
                 console.error(
                     `Throttled by price API, sleeping for ${delay} seconds...`
