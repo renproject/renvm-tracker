@@ -158,22 +158,28 @@ export class BlockWatcher {
         }
 
         if (!syncedHeight || latestBlock.height > syncedHeight) {
-            for (
-                let i = syncedHeight;
-                i <= latestBlock.height;
-                i += this.batchSize
-            ) {
-                const latestBlocks = await this.getNextBlockBatch(
-                    client,
-                    i,
-                    syncedHeight && latestBlock.height
-                        ? Math.min(
-                              latestBlock.height - syncedHeight,
-                              this.batchSize
-                          )
-                        : this.batchSize
+            while (syncedHeight < latestBlock.height) {
+                const fromBlock = syncedHeight + 1;
+
+                // NOTE - we shouldn't assume it will return this number of
+                // blocks - may return less or more.
+                const blocksToFetch = Math.min(
+                    this.batchSize,
+                    latestBlock.height - syncedHeight
                 );
 
+                console.log(
+                    `[${yellow(
+                        this.network
+                    )}] Getting ${blocksToFetch} blocks from ${fromBlock} (latest: ${
+                        latestBlock.height
+                    } - ${latestBlock.height - syncedHeight} behind).`
+                );
+                const latestBlocks = await this.getNextBlockBatch(
+                    client,
+                    fromBlock,
+                    blocksToFetch
+                );
                 for (const block of latestBlocks) {
                     for (const blockSubscription of this.blockSubscriptions) {
                         await blockSubscription(
@@ -185,8 +191,16 @@ export class BlockWatcher {
                         );
                     }
                 }
+
+                // Set the synced height to the height block that was fetched.
+                syncedHeight = latestBlocks.reduce(
+                    (acc, block) => Math.max(acc, block.height),
+                    syncedHeight
+                );
             }
 
+            // Save the synced height.
+            renvmState.syncedBlock = syncedHeight;
             await renvmState.save();
         }
     };
