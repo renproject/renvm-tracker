@@ -1,13 +1,14 @@
 # `RenVM Tracker`
 
-The RenVM Tracker is a server that syncs RenVM blocks and tracks volume, locked
-amounts and historic asset prices.
+The RenVM Tracker is a server that syncs RenVM blocks and tracks volume, locked amounts and historic asset prices.
 
 # Usage
 
-The interface is a GraphQL endpoint running at https://renvm-tracker.herokuapp.com.
+The interface is a GraphQL endpoint running at https://renvm-tracker.herokuapp.com (mainnet) and https://renvm-tracker-testnet.herokuapp.com (testnet).
 
 There is one type of queryable entities, `Snapshots`, which contain RenVM's statistics for a specific timestamp.
+
+Snapshots can be queried by providing a Unix timestamp in seconds. The request will return the most recent `Snapshot` before or at that timestamp. If the timestamp is from before the first `Snapshot`, an error will be thrown.
 
 The volume in a `Snapshot` is the total since the network came online, so to get the volume of a specific period (e.g. 1 month), you should get the snapshots from the start and the end of the period and subtract the volume and locked amounts.
 
@@ -15,7 +16,7 @@ You can request multiple snapshots in a single request by using labels (see the 
 
 The `fees` field is only available for snapshots from August 2021 onwards.
 
-```
+```graphql
 {
   snapshot1: Snapshot(timestamp: "1627300267") {
     id
@@ -32,6 +33,7 @@ The `fees` field is only available for snapshots from August 2021 onwards.
       amount
       amountInUsd
     }
+    # Only available for Snapshots from August 2021 onwards.
     fees {
       asset
       amount
@@ -50,16 +52,18 @@ You will need a GraphQL client - you can find a list for various languages at ht
 
 <details>
 
-<summary>Developer notes</summary>
+<summary>Maintainer notes</summary>
 
 <br />
 
-# Developer notes
+## Maintainer notes
 
 ### TODO
 
--   Add fee and darknode infromation
--   Testnet version
+Stats to add:
+
+-   Historic fee stats
+-   Darknode stats
 
 ### Notes
 
