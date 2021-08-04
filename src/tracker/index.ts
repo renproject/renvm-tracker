@@ -6,7 +6,7 @@ import { Connection } from "typeorm";
 import { CRASH } from "../common/utils";
 import { BlockHandler } from "./blockHandler/blockHandler";
 import {
-    INPUT_FILE,
+    INPUT_FILES,
     syncHistoricEventsToDatabase,
     Web3Event,
 } from "./historic/syncHistoricEventsToDatabase";
@@ -22,7 +22,7 @@ export const runTracker = async (
 ) => {
     // Checks if it needs to load the historic events into the database.
     if (initialize) {
-        const finalData = await readFileAsync(INPUT_FILE, "utf-8");
+        const finalData = await readFileAsync(INPUT_FILES[network], "utf-8");
         const eventArray = JSON.parse(finalData) as Web3Event[];
         const eventList = List(eventArray).sortBy((event) => event.timestamp);
 

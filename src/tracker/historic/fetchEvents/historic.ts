@@ -7,19 +7,20 @@ import {
     binanceSmartChain,
     ethereum,
     fantom,
-    polygon,
     getHistoricEVMEvents,
+    polygon,
 } from "./historicEVM";
 import { getHistoricSolanaEvents, solana } from "./historicSolana";
 
 config();
 
-// Mainnet block 96566.
-const timestamp = 1626375768;
+const timestamps = {
+    [RenNetwork.Mainnet]: 1626375768, // Mainnet block 96566.
+    [RenNetwork.Testnet]: 1628039181, // Testnet block 104.
+};
 
-const OUTPUT_FILE = "./src/historic/events/since-96566-2.json";
-
-const NETWORK = RenNetwork.Mainnet;
+const NETWORK = RenNetwork.Testnet;
+const OUTPUT_FILE = `./src/tracker/historic/events/${NETWORK}.json`;
 
 const main = async () => {
     let eventArray = List();
@@ -28,13 +29,13 @@ const main = async () => {
     for (const networkDetails of [
         // fantom,
         // avalanche,
-        ethereum,
         // binanceSmartChain,
         // polygon,
+        // ethereum,
     ]) {
         eventArray = eventArray.merge(
             await getHistoricEVMEvents(
-                timestamp,
+                timestamps[NETWORK],
                 networkDetails,
                 NETWORK,
                 OUTPUT_FILE
@@ -43,11 +44,13 @@ const main = async () => {
     }
 
     // Solana chains
-    for (const networDetails of [
-        // solana
-    ]) {
+    for (const networDetails of [solana]) {
         eventArray = eventArray.merge(
-            await getHistoricSolanaEvents(timestamp, networDetails, NETWORK)
+            await getHistoricSolanaEvents(
+                timestamps[NETWORK],
+                networDetails,
+                NETWORK
+            )
         );
     }
 

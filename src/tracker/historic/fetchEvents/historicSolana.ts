@@ -20,11 +20,11 @@ export const solana: SolanaNetwork = {
 
 export const getHistoricSolanaEvents = async (
     timestamp: number,
-    evmNetwork: SolanaNetwork,
+    chainNetwork: SolanaNetwork,
     renNetwork: RenNetwork
 ): Promise<List<HistoricEvent>> => {
     let eventArray = List<HistoricEvent>();
-    let { chainClass, gateways } = evmNetwork;
+    let { chainClass, gateways } = chainNetwork;
 
     const networkObject = resolveNetwork(renNetwork);
 
@@ -39,7 +39,7 @@ export const getHistoricSolanaEvents = async (
         networkObject
     ).initialize(renNetwork);
 
-    console.log(`Handling ${evmNetwork.chainClass.chain}`);
+    console.log(`Handling ${chainNetwork.chainClass.chain}`);
 
     let total = new BigNumber(0);
 

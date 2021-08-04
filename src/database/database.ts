@@ -16,7 +16,7 @@ export const initializeDatabase = async (
             break;
         case RenNetwork.Testnet:
             const testnet = new RenVM(RenNetwork.Testnet);
-            testnet.syncedBlock = 2484310;
+            testnet.syncedBlock = 104;
             await testnet.save();
 
             break;

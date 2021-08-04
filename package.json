@@ -10,13 +10,13 @@
         "build": "yarn tsc",
         "test": "nyc ts-mocha --sort --exit --timeout 180000 --paths -p ./tsconfig.json ./test/*.spec.ts ./test/**/*.spec.ts",
         "start": "(. ./.env); yarn build && node dist/index.js",
-        "generate-historic": "(. ./.env); yarn build && node ./dist/historic/historic.js"
+        "generate-historic": "(. ./.env); yarn build && node ./dist/tracker/historic/fetchEvents/historic.js"
     },
     "dependencies": {
-        "@renproject/chains-ethereum": "^2.4.5",
-        "@renproject/chains-solana": "^2.4.5",
-        "@renproject/interfaces": "^2.4.5",
-        "@renproject/rpc": "^2.4.5",
+        "@renproject/chains-ethereum": "^2.4.7",
+        "@renproject/chains-solana": "^2.4.7",
+        "@renproject/interfaces": "^2.4.7",
+        "@renproject/rpc": "^2.4.7",
         "@solana/web3.js": "^1.21.0",
         "@types/node": "^14.11.5",
         "apollo-server-express": "^3.0.2",

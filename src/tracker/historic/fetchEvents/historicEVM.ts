@@ -29,78 +29,288 @@ if (!INFURA_KEY) {
 
 interface EVMNetwork {
     chainClass: typeof EthereumBaseChain;
-    gateways: Array<
-        [
-            // Symbol
-            string,
-            // Block height of ERC20 deployment
-            number
-        ]
-    >;
+    gateways: Array<{
+        // Symbol
+        symbol: string;
+        // Block height of ERC20 deployment
+        fromBlock: {
+            [network: string]: number | null;
+        };
+    }>;
 }
 
 export const ethereum: EVMNetwork = {
     chainClass: Ethereum,
     gateways: [
-        ["BTC", 9736969],
-        ["ZEC", 9737148],
-        ["BCH", 9737199],
-        ["FIL", 11156141],
-        ["DGB", 11182416],
-        ["DOGE", 11182446],
-        ["LUNA", 11182591],
+        {
+            symbol: "BTC",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 9736969,
+                [RenNetwork.Testnet]: 17625998,
+            },
+        },
+        {
+            symbol: "ZEC",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 9737148,
+                [RenNetwork.Testnet]: 17625998,
+            },
+        },
+        {
+            symbol: "BCH",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 9737199,
+                [RenNetwork.Testnet]: 17625998,
+            },
+        },
+        {
+            symbol: "FIL",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 11156141,
+                [RenNetwork.Testnet]: 17625998,
+            },
+        },
+        {
+            symbol: "DGB",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 11182416,
+                [RenNetwork.Testnet]: 17625998,
+            },
+        },
+        {
+            symbol: "DOGE",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 11182446,
+                [RenNetwork.Testnet]: 17625998,
+            },
+        },
+        {
+            symbol: "LUNA",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 11182591,
+                [RenNetwork.Testnet]: 17625998,
+            },
+        },
     ],
 };
 
 export const binanceSmartChain: EVMNetwork = {
     chainClass: BinanceSmartChain,
     gateways: [
-        ["BTC", 2132296],
-        ["ZEC", 2132695],
-        ["BCH", 2133070],
-        ["FIL", 1929542],
-        ["DGB", 1929878],
-        ["DOGE", 1930163],
-        ["LUNA", 1930566],
+        {
+            symbol: "BTC",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 2132296,
+                [RenNetwork.Testnet]: null,
+            },
+        },
+        {
+            symbol: "ZEC",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 2132695,
+                [RenNetwork.Testnet]: null,
+            },
+        },
+        {
+            symbol: "BCH",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 2133070,
+                [RenNetwork.Testnet]: null,
+            },
+        },
+        {
+            symbol: "FIL",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 1929542,
+                [RenNetwork.Testnet]: null,
+            },
+        },
+        {
+            symbol: "DGB",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 1929878,
+                [RenNetwork.Testnet]: null,
+            },
+        },
+        {
+            symbol: "DOGE",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 1930163,
+                [RenNetwork.Testnet]: null,
+            },
+        },
+        {
+            symbol: "LUNA",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 1930566,
+                [RenNetwork.Testnet]: null,
+            },
+        },
     ],
 };
 
 export const fantom: EVMNetwork = {
     chainClass: Fantom,
     gateways: [
-        ["BTC", 7497610],
-        ["ZEC", 7501989],
-        ["BCH", 7502280],
-        ["FIL", 7502575],
-        ["DGB", 7502840],
-        ["DOGE", 7503104],
-        ["LUNA", 7503383],
+        {
+            symbol: "BTC",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 7497610,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
+        {
+            symbol: "ZEC",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 7501989,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
+        {
+            symbol: "BCH",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 7502280,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
+        {
+            symbol: "FIL",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 7502575,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
+        {
+            symbol: "DGB",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 7502840,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
+        {
+            symbol: "DOGE",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 7503104,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
+        {
+            symbol: "LUNA",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 7503383,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
     ],
 };
 
 export const polygon: EVMNetwork = {
     chainClass: Polygon,
     gateways: [
-        ["BTC", 14937166],
-        ["ZEC", 14937213],
-        ["BCH", 14937654],
-        ["FIL", 14937702],
-        ["DGB", 14937749],
-        ["DOGE", 14937797],
-        ["LUNA", 14937845],
+        {
+            symbol: "BTC",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 14937166,
+                [RenNetwork.Testnet]: null,
+            },
+        },
+        {
+            symbol: "ZEC",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 14937213,
+                [RenNetwork.Testnet]: null,
+            },
+        },
+        {
+            symbol: "BCH",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 14937654,
+                [RenNetwork.Testnet]: null,
+            },
+        },
+        {
+            symbol: "FIL",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 14937702,
+                [RenNetwork.Testnet]: null,
+            },
+        },
+        {
+            symbol: "DGB",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 14937749,
+                [RenNetwork.Testnet]: null,
+            },
+        },
+        {
+            symbol: "DOGE",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 14937797,
+                [RenNetwork.Testnet]: null,
+            },
+        },
+        {
+            symbol: "LUNA",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 14937845,
+                [RenNetwork.Testnet]: null,
+            },
+        },
     ],
 };
 
 export const avalanche: EVMNetwork = {
     chainClass: Avalanche,
     gateways: [
-        ["BTC", 2177340],
-        ["ZEC", 2177423],
-        ["BCH", 2177453],
-        ["FIL", 2177489],
-        ["DGB", 2177519],
-        ["DOGE", 2177557],
-        ["LUNA", 2177598],
+        {
+            symbol: "BTC",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 2177340,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
+        {
+            symbol: "ZEC",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 2177423,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
+        {
+            symbol: "BCH",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 2177453,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
+        {
+            symbol: "FIL",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 2177489,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
+        {
+            symbol: "DGB",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 2177519,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
+        {
+            symbol: "DOGE",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 2177557,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
+        {
+            symbol: "LUNA",
+            fromBlock: {
+                [RenNetwork.Mainnet]: 2177598,
+                [RenNetwork.Testnet]: 0,
+            },
+        },
     ],
 };
 
@@ -196,8 +406,8 @@ export const getHistoricEVMEvents = async (
         `Finding ${chainObject.chain} block with timestamp <= ${timestamp}.`
     );
 
-    const deployedAtBlock = await getBlockBeforeTimestamp(web3, timestamp);
-    const to = await web3.eth.getBlockNumber();
+    // const deployedAtBlock = await getBlockBeforeTimestamp(web3, timestamp);
+    const to = await getBlockBeforeTimestamp(web3, timestamp);
 
     console.info(`Fetching events up until ${to}.`);
 
@@ -215,8 +425,13 @@ export const getHistoricEVMEvents = async (
 
     let total = new BigNumber(0);
 
-    for (const [symbol] of gateways) {
+    for (const { symbol, fromBlock } of gateways) {
         const assetContract = await chainObject.getTokenContractAddress(symbol);
+        const deployedAtBlock = fromBlock[renNetwork];
+
+        if (deployedAtBlock === null) {
+            continue;
+        }
 
         for (let i = deployedAtBlock; i < to; i += skip) {
             console.info(

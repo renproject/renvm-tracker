@@ -5,23 +5,23 @@ const fs = require("fs");
 const util = require("util");
 
 const INPUT_FILES = [
-    "src/indexer/final-96566.jsonFantom",
-    "src/indexer/final-96566.jsonAvalanche",
-    "src/indexer/final-96566.jsonEthereum",
-    "src/indexer/final-96566.jsonBinanceSmartChain",
-    // "src/indexer/final-96566.jsonPolygon",
-    "src/indexer/final-96566.json",
+    "src/tracker/historic/events/testnet.jsonFantom",
+    "src/tracker/historic/events/testnet.jsonAvalanche",
+    "src/tracker/historic/events/testnet.jsonBinanceSmartChain",
+    "src/tracker/historic/events/testnet.jsonPolygon",
+    "src/tracker/historic/events/testnet.jsonEthereum",
+    "src/tracker/historic/events/testnet.jsonSolana",
 ];
-const OUTPUT_FILE = "src/indexer/final-96566-sorted.json";
+const OUTPUT_FILE = "src/tracker/historic/events/testnet.json";
 
-const readFileSync = util.promisify(fs.readFileSync);
+const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 
 const main = async () => {
     let eventArray = List();
 
     for (const filename of INPUT_FILES) {
-        const data = await readFileSync(filename, "utf-8");
+        const data = await readFile(filename, "utf-8");
 
         const json = JSON.parse(data);
         const tmpArray = List(json);
