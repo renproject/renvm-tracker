@@ -1,54 +1,10 @@
 # `RenVM Tracker`
 
-The RenVM Tracker is a server that syncs RenVM blocks and tracks volume, locked amounts and historic asset prices.
+The RenVM Tracker is a server that syncs RenVM blocks and tracks volume, locked amounts and historic asset prices. It provides a GraphQL interface to query RenVM stats for a provided timestamp.
 
-# Usage
+## **~ [Documentation](https://renproject.github.io/ren-client-docs/stats/renvm-stats) ~**
 
-The interface is a GraphQL endpoint running at https://renvm-tracker.herokuapp.com (mainnet) and https://renvm-tracker-testnet.herokuapp.com (testnet).
-
-There is one type of queryable entities, `Snapshots`, which contain RenVM's statistics for a specific timestamp.
-
-Snapshots can be queried by providing a Unix timestamp in seconds. The request will return the most recent `Snapshot` before or at that timestamp. If the timestamp is from before the first `Snapshot`, an error will be thrown.
-
-The volume in a `Snapshot` is the total since the network came online, so to get the volume of a specific period (e.g. 1 month), you should get the snapshots from the start and the end of the period and subtract the volume and locked amounts.
-
-You can request multiple snapshots in a single request by using labels (see the label `snapshot1` below).
-
-The `fees` field is only available for snapshots from August 2021 onwards.
-
-```graphql
-{
-  snapshot1: Snapshot(timestamp: "1627300267") {
-    id
-    timestamp
-    locked {
-      asset
-      chain
-      amount
-      amountInUsd
-    }
-    volume {
-      asset
-      chain
-      amount
-      amountInUsd
-    }
-    # Only available for Snapshots from August 2021 onwards.
-    fees {
-      asset
-      amount
-      amountInUsd
-    }
-    prices {
-      asset
-      decimals
-      priceInUsd
-    }
-  }
-}
-```
-
-You will need a GraphQL client - you can find a list for various languages at https://graphql.org/code/. The Ren front-ends use the [Apollo Client](https://www.npmjs.com/package/@apollo/client).
+<hr />
 
 <details>
 
