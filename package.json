@@ -1,9 +1,9 @@
 {
-    "name": "account-chain-indexer",
+    "name": "renvm-tracker",
     "version": "1.0.0",
-    "description": "Indexes account-based chains for RenVM",
+    "description": "Track RenVM volume across time",
     "main": "./dist/index.js",
-    "repository": "https://github.com/renproject/account-chain-indexer",
+    "repository": "https://github.com/renproject/renvm-tracker",
     "author": "renproject",
     "license": "MIT",
     "scripts": {
@@ -38,9 +38,6 @@
         "typescript": "^4.0.3",
         "web3": "^1.4.0"
     },
-    "prettier": {
-        "tabWidth": 4
-    },
     "devDependencies": {
         "@types/chai": "^4.2.21",
         "@types/mocha": "^9.0.0",
@@ -48,5 +45,8 @@
         "mocha": "^9.0.3",
         "nyc": "^15.1.0",
         "ts-mocha": "^8.0.0"
+    },
+    "prettier": {
+        "tabWidth": 4
     }
 }

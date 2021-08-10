@@ -1,6 +1,6 @@
 # `RenVM Tracker`
 
-The RenVM Tracker is a server that syncs RenVM blocks and tracks volume, locked amounts and historic asset prices. It provides a GraphQL interface to query RenVM stats for a provided timestamp.
+The RenVM Tracker is a server that syncs RenVM blocks and tracks volume, locked amounts and historic asset prices. It provides a GraphQL endpoint to query RenVM stats for a provided timestamp, available at [stats.renproject.io](https://stats.renproject.io).
 
 ## **~ [Documentation](https://renproject.github.io/ren-client-docs/stats/renvm-stats) ~**
 
