@@ -21,7 +21,7 @@ const RESET_DATABASE: boolean = false;
 export const main = async (
     network: RenNetwork.Mainnet | RenNetwork.Testnet
 ) => {
-    console.log(`Network: ${network}`);
+    console.log(`Running against ${network}.`);
 
     if (RESET_DATABASE) {
         await resetDatabase();
