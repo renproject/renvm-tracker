@@ -6,7 +6,7 @@ import {
 import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
 import BigNumber from "bignumber.js";
 import { blue, blueBright, cyan, green, magenta, red, yellow } from "chalk";
-import { RenVM } from "../../database/models";
+import { RenVMProgress } from "../../database/models";
 import { Connection } from "typeorm";
 import { Snapshot, getSnapshot } from "../../database/models/Snapshot";
 import {
@@ -244,7 +244,7 @@ export class BlockHandler {
     };
 
     blockHandler: BlockHandlerInterface = async (
-        renVM: RenVM,
+        renVM: RenVMProgress,
         block: CommonBlock,
         blockState?: BlockState
     ) => {

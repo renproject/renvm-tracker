@@ -17,7 +17,7 @@ import {
 import { RenNetwork } from "../../networks";
 
 export interface ISnapshot {
-    id: number | null;
+    _id: number | null;
     timestamp: number;
     volume: AssetAmountWithChain[];
     locked: AssetAmountWithChain[];

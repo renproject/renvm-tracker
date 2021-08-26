@@ -5,6 +5,7 @@ import express from "express";
 import { buildSchema } from "type-graphql";
 import cors from "cors";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
+import compression from "compression";
 
 import {
     DEFAULT_PLAYGROUND_URL,
@@ -71,8 +72,9 @@ export const runServer = async () => {
 
     const app = express();
 
-    // Enable cors.
+    // Enable plugins.
     app.use(cors());
+    app.use(compression());
 
     apolloServer.applyMiddleware({ app, path: GRAPHQL_PATH });
 

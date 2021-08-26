@@ -1,2 +1,2 @@
 export * from "./Snapshot";
-export * from "./RenVM";
+export * from "./RenVMProgress";

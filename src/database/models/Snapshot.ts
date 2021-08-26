@@ -7,10 +7,10 @@ import {
     PrimaryGeneratedColumn,
     Unique,
 } from "typeorm";
-
 import { Moment } from "moment";
-import { ColumnCommonOptions } from "typeorm/decorator/options/ColumnCommonOptions";
 import moment from "moment";
+
+import { JSONTransformer } from "./common";
 
 export const TIME_BLOCK_LENGTH = 300; // 5 minutes
 
@@ -107,13 +107,6 @@ export class AssetPrice {
     }
 }
 
-export const JSONTransformer: ColumnCommonOptions = {
-    transformer: {
-        to: JSON.stringify,
-        from: JSON.parse,
-    },
-};
-
 // Convert a unix timestamp to a human-readable representation. Seconds are not
 // included.
 // e.g. timestampString(1627611153) = "2021 July 30th, 2:12am (UTC)"
@@ -128,7 +121,7 @@ const timestampString = (timestamp: number): string =>
 export class Snapshot extends BaseEntity {
     @Field(() => ID)
     @PrimaryGeneratedColumn()
-    id: number | null = null;
+    _id: number | null = null;
 
     @Field(() => Number)
     @Column()

@@ -6,12 +6,18 @@ import {
     ResponseQueryBlocks,
     unmarshalPackValue,
     ResponseQueryBlock,
+    ResponseQueryTx,
 } from "@renproject/rpc/build/main/v2";
 import { RenVMProvider } from "@renproject/rpc/build/main/v2/renVMProvider";
 
-import { RenVM } from "../../database/models";
+import { RenVMProgress } from "../../database/models";
 import { RenNetwork } from "../../networks";
-import { BlockState, CommonBlock, BlockHandlerInterface } from "./events";
+import {
+    BlockState,
+    CommonBlock,
+    BlockHandlerInterface,
+    RenVMBlock,
+} from "./events";
 import { SECONDS, sleep } from "../../common/utils";
 
 export class BlockWatcher {
@@ -88,18 +94,7 @@ export class BlockWatcher {
             )
         ).blocks;
 
-        return await Promise.all(
-            blocks.map(async (block: ResponseQueryBlock["block"]) => ({
-                height: parseInt(block.height),
-                timestamp: moment(block.timestamp * 1000),
-                transactions: await Promise.all(
-                    block.extrinsicTxs.map(
-                        async (txHash: string) =>
-                            await this.client?.queryTx(txHash)
-                    )
-                ),
-            }))
-        );
+        return await Promise.all(blocks.map(fetchBlockTransactions));
     };
 
     getBlockState = async (client: RenVMProvider): Promise<BlockState> => {
@@ -115,9 +110,7 @@ export class BlockWatcher {
     };
 
     loop = async (client: RenVMProvider) => {
-        const renvmState = await RenVM.findOneOrFail({
-            network: this.network,
-        });
+        const renvmState = await RenVMProgress.findOneOrFail();
 
         let syncedHeight: number = renvmState.syncedBlock;
 
@@ -205,3 +198,25 @@ export class BlockWatcher {
         }
     };
 }
+
+/**
+ * Replaces RenVM hashes with the transaction details.
+ *
+ * @param client A RenVMProvider
+ * @param block A block object as returned from a ren_queryBlock.
+ * @returns A Promise to the block with RenVM hashes replaced by transaction
+ * details.
+ */
+export const fetchBlockTransactions = async (
+    client: RenVMProvider,
+    block: RenVMBlock
+): Promise<CommonBlock> => ({
+    height: parseInt(block.height),
+    timestamp: moment(parseInt(block.timestamp) * 1000),
+    transactions: await Promise.all(
+        block.extrinsicTxs.map(
+            async (txHash: string): Promise<ResponseQueryTx> =>
+                await client.queryTx(txHash)
+        )
+    ),
+});

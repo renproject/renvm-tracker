@@ -20,7 +20,7 @@ const timestamps = {
 };
 
 const NETWORK = RenNetwork.Testnet;
-const OUTPUT_FILE = `./src/tracker/historic/events/${NETWORK}.json`;
+const OUTPUT_FILE = `./src/tracker/historic/events/${NETWORK}-chains.json`;
 
 const main = async () => {
     let eventArray = List();

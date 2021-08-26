@@ -11,10 +11,10 @@ import { RenNetwork } from "../../networks";
 @Entity()
 @ObjectType()
 @Unique(["network"])
-export class RenVM extends BaseEntity {
+export class RenVMProgress extends BaseEntity {
     @Field(() => ID)
     @PrimaryGeneratedColumn()
-    id: number | null = null;
+    _id: number | null = null;
 
     @Field(() => Int)
     @Column()
@@ -24,14 +24,7 @@ export class RenVM extends BaseEntity {
     @Column()
     migrationCount: number = 0;
 
-    @Field(() => String)
-    @Column()
-    network: RenNetwork;
-
-    constructor(network: RenNetwork) {
+    constructor() {
         super();
-
-        this.migrationCount = 0;
-        this.network = network;
     }
 }

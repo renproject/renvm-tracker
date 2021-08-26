@@ -1,8 +1,7 @@
-// @ts-check
-
-const { List } = require("immutable");
-const fs = require("fs");
-const util = require("util");
+import { List } from "immutable";
+import fs from "fs";
+import util from "util";
+import { HistoricEvent } from "../types";
 
 const INPUT_FILES = [
     "src/tracker/historic/events/testnet.jsonFantom",
@@ -18,13 +17,13 @@ const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 
 const main = async () => {
-    let eventArray = List();
+    let eventArray = List<HistoricEvent>();
 
     for (const filename of INPUT_FILES) {
         const data = await readFile(filename, "utf-8");
 
         const json = JSON.parse(data);
-        const tmpArray = List(json);
+        const tmpArray = List<HistoricEvent>(json);
         eventArray = eventArray.merge(tmpArray);
         console.log(`Loaded ${tmpArray.size} events from ${filename}`);
     }

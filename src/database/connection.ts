@@ -1,7 +1,7 @@
 import { PostgresConnectionOptions } from "typeorm/driver/postgres/PostgresConnectionOptions";
 
 import { DATABASE_URL } from "../common/environmentVariables";
-import { RenVM, Snapshot } from "./models";
+import { RenVMProgress, Snapshot } from "./models";
 
 export const typeOrmConfig: PostgresConnectionOptions = {
     type: "postgres",
@@ -15,5 +15,5 @@ export const typeOrmConfig: PostgresConnectionOptions = {
     database: "indexer",
     synchronize: false,
     logging: false,
-    entities: [Snapshot, RenVM],
+    entities: [Snapshot, RenVMProgress],
 };

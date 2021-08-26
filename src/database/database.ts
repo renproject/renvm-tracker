@@ -1,23 +1,24 @@
 import { Connection, createConnection, getConnection } from "typeorm";
 
 import { typeOrmConfig } from "./connection";
-import { RenVM } from "./models";
+import { RenVMProgress } from "./models";
 import { RenNetwork } from "../networks";
 
 export const initializeDatabase = async (
     network: RenNetwork.Mainnet | RenNetwork.Testnet
 ) => {
+    const renVM = new RenVMProgress();
+
     switch (network) {
         case RenNetwork.Mainnet:
-            const mainnet = new RenVM(RenNetwork.Mainnet);
-            mainnet.syncedBlock = 96566;
-            await mainnet.save();
+            renVM.syncedBlock = 96566;
+            await renVM.save();
 
             break;
         case RenNetwork.Testnet:
-            const testnet = new RenVM(RenNetwork.Testnet);
-            testnet.syncedBlock = 104;
-            await testnet.save();
+            const renVM = new RenVMProgress();
+            renVM.syncedBlock = 104;
+            await renVM.save();
 
             break;
     }

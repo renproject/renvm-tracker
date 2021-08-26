@@ -20,13 +20,11 @@ export interface Web3Event {
 }
 
 export const INPUT_FILES = {
-    [RenNetwork.Mainnet]: "src/tracker/historic/events/mainnet.json",
-    [RenNetwork.Testnet]: "src/tracker/historic/events/testnet.json",
+    [RenNetwork.Mainnet]: "src/tracker/historic/events/mainnet-chains.json",
+    [RenNetwork.Testnet]: "src/tracker/historic/events/testnet-chains.json",
 };
 
 export const syncHistoricEventsToDatabase = async (events: List<Web3Event>) => {
-    let total = new BigNumber(0);
-
     let snapshot: Snapshot | undefined;
 
     for (let i = 0; i < events.size; i++) {
