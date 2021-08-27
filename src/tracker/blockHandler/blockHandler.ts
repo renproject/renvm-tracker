@@ -103,7 +103,9 @@ export class BlockHandler {
                 const amountBN = new BigNumber((tx.out as any).amount);
                 if (amountBN.isNaN()) {
                     console.debug(logPrefix, JSON.stringify(tx));
-                    throw new Error(`Invalid mint amount ${tx.out}`);
+                    throw new Error(
+                        `Invalid mint amount ${JSON.stringify(tx.out)}`
+                    );
                 }
                 amount = amountBN.toFixed();
             }
@@ -252,6 +254,18 @@ export class BlockHandler {
             // Update snapshot for each transaction.
             let snapshot = await getSnapshot(block.timestamp);
             for (let transaction of block.transactions) {
+                // Temporary fix. Can remove in the next commit.
+                // These two transactions were rejected by RenVM without having
+                // a revert reason assigned to them (due to a bug that's being
+                // fixed).
+                if (
+                    transaction.tx.hash ===
+                        "WUrN_0-gb1XvPl46EF_vw_uX00M7DI6yIglicOe2gRE" ||
+                    transaction.tx.hash ===
+                        "7Ha2PseILeitvRLPjhiWDYlf88SugIzPh2odSL2ehc4"
+                ) {
+                    continue;
+                }
                 snapshot = await this.transactionHandler(
                     snapshot,
                     block,
