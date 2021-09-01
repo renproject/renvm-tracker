@@ -10,6 +10,7 @@ import { RenVMProgress } from "../../database/models";
 import { Connection } from "typeorm";
 import { Snapshot, getSnapshot } from "../../database/models/Snapshot";
 import {
+    addFees,
     addLocked,
     addVolume,
     assertAmountIsValid,
@@ -29,6 +30,8 @@ import {
 } from "../blockWatcher/events";
 import { applyPrice, applyPriceWithChain } from "../priceFetcher/PriceFetcher";
 import { RenNetwork } from "../../networks";
+
+const HARDCODED_RENVM_FEE = 15 / 10000;
 
 const colorizeChain = (chain: string): string => {
     const color =
@@ -147,14 +150,34 @@ export class BlockHandler {
                 assetPrice
             );
 
+            const feeAmount = new BigNumber(amount)
+                .times(HARDCODED_RENVM_FEE)
+                .absoluteValue()
+                .integerValue(BigNumber.ROUND_DOWN)
+                .toFixed();
+
+            const feeAmountWithPrice = applyPriceWithChain(
+                chain,
+                asset,
+                feeAmount,
+                assetPrice
+            );
+
             assertAmountIsValid(
                 amountWithPrice,
                 "amountWithPrice in transactionHandler",
                 [logPrefix, chain, asset, amount, assetPrice]
             );
 
+            assertAmountIsValid(
+                feeAmountWithPrice,
+                "feeAmountWithPrice in transactionHandler",
+                [logPrefix, chain, asset, feeAmountWithPrice, assetPrice]
+            );
+
             snapshot = await addVolume(snapshot, amountWithPrice, assetPrice);
             snapshot = await addLocked(snapshot, amountWithPrice, assetPrice);
+            snapshot = await addFees(snapshot, amountWithPrice, assetPrice);
 
             const color = mintOrBurn === MintOrBurn.MINT ? green : red;
             let amountString = new BigNumber(amountWithPrice.amount)

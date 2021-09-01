@@ -4,4 +4,6 @@ export interface HistoricEvent {
     symbol: string;
     timestamp: number;
     amount: string;
+    to: string;
+    txHash: string;
 }

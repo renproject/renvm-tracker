@@ -3,6 +3,7 @@ import BigNumber from "bignumber.js";
 import moment from "moment";
 
 import {
+    applyPrice,
     applyPriceWithChain,
     assertPriceIsValid,
     fetchAssetPrice,
@@ -205,6 +206,66 @@ export const addLocked = <Snapshot extends ISnapshot>(
         assertAmountIsValid(snapshot.locked[i], "locked[i] in addVolume");
     } else {
         snapshot.locked.push(amountToAdd);
+    }
+
+    return snapshot;
+};
+
+export const addFees = <Snapshot extends ISnapshot>(
+    snapshot: Snapshot,
+    amountToAdd: AssetAmount,
+    assetPrice: AssetPrice | undefined
+): Snapshot => {
+    assertAmountIsValid(amountToAdd, "amountToAdd in addFees", [assetPrice]);
+    if (assetPrice) {
+        assertPriceIsValid(assetPrice, "assetPrice in addFees");
+    }
+
+    const feesAndIndex = snapshot.fees
+        .map((v, i) => ({ v, i }))
+        .find(({ v }) => v.asset === amountToAdd.asset);
+
+    if (!feesAndIndex) {
+        snapshot.fees.push(amountToAdd);
+    } else {
+        let { v, i } = feesAndIndex;
+
+        if (
+            assetPrice &&
+            new BigNumber(v.amount).gt(0) &&
+            new BigNumber(v.amountInUsd).isZero()
+        ) {
+            v = applyPrice(v.asset, v.amount, assetPrice);
+        }
+
+        assertAmountIsValid(v, "v in addFees");
+
+        const amount = new BigNumber(amountToAdd.amount)
+            .abs()
+            .plus(v.amount)
+            .toFixed();
+        const amountInEth = new BigNumber(amountToAdd.amountInEth)
+            .abs()
+            .plus(v.amountInEth)
+            .toFixed();
+        const amountInBtc = new BigNumber(amountToAdd.amountInBtc)
+            .abs()
+            .plus(v.amountInBtc)
+            .toFixed();
+        const amountInUsd = new BigNumber(amountToAdd.amountInUsd)
+            .abs()
+            .plus(v.amountInUsd)
+            .toFixed();
+
+        snapshot.fees[i] = new AssetAmount(
+            amountToAdd.asset,
+            amount,
+            amountInEth,
+            amountInBtc,
+            amountInUsd
+        );
+
+        assertAmountIsValid(snapshot.fees[i], "fees[i] in addfees");
     }
 
     return snapshot;

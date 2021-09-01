@@ -5,13 +5,12 @@ import { Connection } from "typeorm";
 
 import { CRASH } from "../common/utils";
 import { BlockHandler } from "./blockHandler/blockHandler";
-import {
-    INPUT_FILES,
-    syncHistoricEventsToDatabase,
-    Web3Event,
-} from "./historic/syncHistoricEventsToDatabase";
+import { loadHistoricEVMEvents } from "./historic/loadHistoricEVMEvents";
 import { BlockWatcher } from "./blockWatcher/blockWatcher";
 import { RenNetwork } from "../networks";
+import { HistoricEvent } from "./historic/types";
+import { networkConfigs } from "./historic/config";
+import { loadHistoricRenVMBlocks } from "./historic/loadHistoricRenVMBlocks";
 
 const readFileAsync = promisify(readFile);
 
@@ -20,17 +19,33 @@ export const runTracker = async (
     connection: Connection,
     initialize: boolean
 ) => {
+    const blockHandler = new BlockHandler(network, connection);
+
     // Checks if it needs to load the historic events into the database.
     if (initialize) {
-        const finalData = await readFileAsync(INPUT_FILES[network], "utf-8");
-        const eventArray = JSON.parse(finalData) as Web3Event[];
-        const eventList = List(eventArray).sortBy((event) => event.timestamp);
+        const { historicChainEvents, historicRenVMBlocks } =
+            networkConfigs[network];
 
-        await syncHistoricEventsToDatabase(eventList);
+        if (historicChainEvents) {
+            const eventArray = await historicChainEvents.events();
+            const eventList = List(eventArray).sortBy(
+                (event) => event.timestamp
+            );
+
+            await loadHistoricEVMEvents(eventList);
+        }
+
+        if (historicRenVMBlocks) {
+            const blockArray = await historicRenVMBlocks.blocks();
+            const blockList = List(blockArray);
+
+            await loadHistoricRenVMBlocks(network, blockList, [
+                blockHandler.blockHandler,
+            ]);
+        }
     }
 
     // Start the block watcher and subscribe the block handler to block events.
-    const blockHandler = new BlockHandler(network, connection);
     const blockWatcher = new BlockWatcher(network, connection);
     blockWatcher.subscribe("block", blockHandler.blockHandler);
     blockWatcher.start().catch(CRASH);

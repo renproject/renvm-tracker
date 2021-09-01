@@ -1,5 +1,4 @@
 import Web3 from "web3";
-import { PastLogsOptions, Log } from "web3-core";
 import { List } from "immutable";
 import BigNumber from "bignumber.js";
 import {
@@ -15,6 +14,8 @@ import { RenNetwork } from "@renproject/interfaces";
 import { config } from "dotenv";
 import { writeFile } from "fs";
 import { HistoricEvent } from "../types";
+import { SECONDS, sleep } from "../../../common/utils";
+
 config();
 
 // If more than 10000 events are in any set of 250k logs, then this should be
@@ -332,14 +333,28 @@ const getBlockBeforeTimestamp = async (web3: Web3, timestamp: number) => {
                 Math.log2(latestBlockNumber - earliestBlockNumber)
             )})`
         );
-        let currentTimestamp = parseInt(
-            (await web3.eth.getBlock(currentBlock)).timestamp.toString(),
-            10
-        );
-        let nextTimestamp = parseInt(
-            (await web3.eth.getBlock(currentBlock + 1)).timestamp.toString(),
-            10
-        );
+        let currentTimestamp;
+        let nextTimestamp;
+        while (true) {
+            try {
+                currentTimestamp = parseInt(
+                    (
+                        await web3.eth.getBlock(currentBlock)
+                    ).timestamp.toString(),
+                    10
+                );
+                nextTimestamp = parseInt(
+                    (
+                        await web3.eth.getBlock(currentBlock + 1)
+                    ).timestamp.toString(),
+                    10
+                );
+                break;
+            } catch (error) {
+                console.log("Retrying in 10 seconds...");
+                await sleep(10 * SECONDS);
+            }
+        }
 
         if (currentTimestamp <= timestamp && nextTimestamp > timestamp) {
             return currentBlock;
@@ -407,19 +422,34 @@ export const getHistoricEVMEvents = async (
     );
 
     // const deployedAtBlock = await getBlockBeforeTimestamp(web3, timestamp);
-    const to = await getBlockBeforeTimestamp(web3, timestamp);
 
-    console.info(`Fetching events up until ${to}.`);
+    let to;
+    let toTimestamp;
+    let blockTime;
 
-    const blocksToEstimateBlocktime = 1000;
-    const toTimestamp = new BigNumber(
-        (await web3.eth.getBlock(to)).timestamp
-    ).toNumber();
-    const timestampNBlocksAgo = new BigNumber(
-        (await web3.eth.getBlock(to - blocksToEstimateBlocktime)).timestamp
-    ).toNumber();
-    const blockTime =
-        (toTimestamp - timestampNBlocksAgo) / blocksToEstimateBlocktime;
+    while (true) {
+        try {
+            to = await getBlockBeforeTimestamp(web3, timestamp);
+
+            console.info(`Fetching events up until ${to}.`);
+
+            const blocksToEstimateBlocktime = 1000;
+            toTimestamp = new BigNumber(
+                (await web3.eth.getBlock(to)).timestamp
+            ).toNumber();
+            const timestampNBlocksAgo = new BigNumber(
+                (
+                    await web3.eth.getBlock(to - blocksToEstimateBlocktime)
+                ).timestamp
+            ).toNumber();
+            blockTime =
+                (toTimestamp - timestampNBlocksAgo) / blocksToEstimateBlocktime;
+            break;
+        } catch (error) {
+            console.log("Retrying in 10 seconds...");
+            await sleep(10 * SECONDS);
+        }
+    }
 
     console.info(`Estimating block time as ${blockTime}s.`);
 
@@ -472,7 +502,7 @@ export const getHistoricEVMEvents = async (
             }
 
             for (const log of mintLogs) {
-                const mint = {
+                const mint: HistoricEvent = {
                     network: renNetwork,
                     chain: chainObject.chain,
                     symbol,
@@ -481,6 +511,7 @@ export const getHistoricEVMEvents = async (
                     ),
                     amount: new BigNumber(log.data).toFixed(),
                     txHash: log.transactionHash,
+                    to: ("0x" + log.topics[2].slice(2 + 24)).toLowerCase(),
                 };
 
                 eventArray = eventArray.push(mint);
@@ -526,7 +557,7 @@ export const getHistoricEVMEvents = async (
             }
 
             for (const log of burnLogs) {
-                const burn = {
+                const burn: HistoricEvent = {
                     network: renNetwork,
                     chain: chainObject.chain,
                     symbol,
@@ -540,6 +571,7 @@ export const getHistoricEVMEvents = async (
                         .negated()
                         .toFixed(),
                     txHash: log.transactionHash,
+                    to: ("0x" + log.topics[2].slice(2 + 24)).toLowerCase(),
                 };
 
                 eventArray = eventArray.push(burn);

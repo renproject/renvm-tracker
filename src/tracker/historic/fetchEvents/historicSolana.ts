@@ -147,12 +147,17 @@ export const getHistoricSolanaEvents = async (
                         const amount = new BN(
                             secondTransaction.data.slice(130, 162)
                         ).toString();
-                        const burn = {
+                        const burn: HistoricEvent = {
                             network: renNetwork,
                             chain: chainObject.chain,
                             symbol,
                             timestamp: transaction.blockTime,
                             amount,
+                            txHash:
+                                transactionDetails.transaction.signature?.toString(
+                                    "base64"
+                                ) || "",
+                            to: "",
                         };
 
                         eventArray = eventArray.push(burn);
@@ -186,6 +191,11 @@ export const getHistoricSolanaEvents = async (
                             symbol,
                             timestamp: transaction.blockTime,
                             amount,
+                            txHash:
+                                transactionDetails.transaction.signature?.toString(
+                                    "base64"
+                                ) || "",
+                            to: "",
                         };
 
                         eventArray = eventArray.push(burn);

@@ -3,25 +3,14 @@ import { Connection, createConnection, getConnection } from "typeorm";
 import { typeOrmConfig } from "./connection";
 import { RenVMProgress } from "./models";
 import { RenNetwork } from "../networks";
+import { networkConfigs } from "src/tracker/historic/config";
 
 export const initializeDatabase = async (
     network: RenNetwork.Mainnet | RenNetwork.Testnet
 ) => {
     const renVM = new RenVMProgress();
-
-    switch (network) {
-        case RenNetwork.Mainnet:
-            renVM.syncedBlock = 96566;
-            await renVM.save();
-
-            break;
-        case RenNetwork.Testnet:
-            const renVM = new RenVMProgress();
-            renVM.syncedBlock = 104;
-            await renVM.save();
-
-            break;
-    }
+    renVM.syncedBlock = networkConfigs[network].liveRenVM.fromBlock;
+    await renVM.save();
 };
 
 export const runDatabase = async (

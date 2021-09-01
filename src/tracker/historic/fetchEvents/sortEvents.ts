@@ -4,14 +4,18 @@ import util from "util";
 import { HistoricEvent } from "../types";
 
 const INPUT_FILES = [
-    "src/tracker/historic/events/testnet.jsonFantom",
-    "src/tracker/historic/events/testnet.jsonAvalanche",
-    "src/tracker/historic/events/testnet.jsonBinanceSmartChain",
-    "src/tracker/historic/events/testnet.jsonPolygon",
-    "src/tracker/historic/events/testnet.jsonEthereum",
-    "src/tracker/historic/events/testnet.jsonSolana",
+    { file: "src/tracker/historic/events/mainnet-chains.jsonFantom" },
+    { file: "src/tracker/historic/events/mainnet-chains.jsonAvalanche" },
+    { file: "src/tracker/historic/events/mainnet-chains.jsonEthereum" },
+    {
+        file: "src/tracker/historic/events/mainnet-chains.json",
+        filter: (event: HistoricEvent) =>
+            event.chain !== "Fantom" &&
+            event.chain !== "Ethereum" &&
+            event.chain !== "Fantom",
+    },
 ];
-const OUTPUT_FILE = "src/tracker/historic/events/testnet.json";
+const OUTPUT_FILE = "src/tracker/historic/events/mainnet-chains-new.json";
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
@@ -19,13 +23,17 @@ const writeFile = util.promisify(fs.writeFile);
 const main = async () => {
     let eventArray = List<HistoricEvent>();
 
-    for (const filename of INPUT_FILES) {
-        const data = await readFile(filename, "utf-8");
+    for (const { file, filter } of INPUT_FILES) {
+        const data = await readFile(file, "utf-8");
 
         const json = JSON.parse(data);
         const tmpArray = List<HistoricEvent>(json);
-        eventArray = eventArray.merge(tmpArray);
-        console.log(`Loaded ${tmpArray.size} events from ${filename}`);
+        const filteredArray = filter ? tmpArray.filter(filter) : tmpArray;
+
+        eventArray = eventArray.merge(filteredArray);
+        console.log(
+            `Loaded ${filteredArray.size} of ${tmpArray.size} events from ${file}`
+        );
     }
 
     eventArray = eventArray.sortBy((x) => x.timestamp);
