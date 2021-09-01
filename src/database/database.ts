@@ -3,7 +3,7 @@ import { Connection, createConnection, getConnection } from "typeorm";
 import { typeOrmConfig } from "./connection";
 import { RenVMProgress } from "./models";
 import { RenNetwork } from "../networks";
-import { networkConfigs } from "src/tracker/historic/config";
+import { networkConfigs } from "../tracker/historic/config";
 
 export const initializeDatabase = async (
     network: RenNetwork.Mainnet | RenNetwork.Testnet

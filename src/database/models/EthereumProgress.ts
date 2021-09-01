@@ -6,11 +6,9 @@ import {
     PrimaryGeneratedColumn,
     Unique,
 } from "typeorm";
-import { RenNetwork } from "../../networks";
 
 @Entity()
 @ObjectType()
-@Unique(["network"])
 export class EthereumProgress extends BaseEntity {
     @Field(() => ID)
     @PrimaryGeneratedColumn()

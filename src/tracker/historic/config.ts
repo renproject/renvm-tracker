@@ -55,7 +55,7 @@ export const networkConfigs: { [network in RenNetwork]: NetworkConfig } = {
             toTimestamp: 1629802268,
         },
         liveRenVM: {
-            fromBlock: 1,
+            fromBlock: 0,
         },
     },
     [RenNetwork.Testnet]: {

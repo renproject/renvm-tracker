@@ -132,7 +132,7 @@ export class BlockWatcher {
                 `[${yellow(this.network)}] ${red(`Detected block reset.`)}`
             );
             renvmState.migrationCount = renvmState.migrationCount + 1;
-            renvmState.syncedBlock = 1;
+            renvmState.syncedBlock = 0;
             syncedHeight = renvmState.syncedBlock;
         }
 
