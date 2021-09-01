@@ -26,22 +26,30 @@ export const runTracker = async (
         const { historicChainEvents, historicRenVMBlocks } =
             networkConfigs[network];
 
+        console.log("historicChainEvents", historicChainEvents);
+        console.log("historicRenVMBlocks", historicRenVMBlocks);
+
         if (historicChainEvents) {
+            console.log(`Loading historic RenVM blocks...`);
             const eventArray = await historicChainEvents.events();
             const eventList = List(eventArray).sortBy(
                 (event) => event.timestamp
             );
 
             await loadHistoricEVMEvents(eventList);
+
+            console.log(`Done loading historic EVM blocks.`);
         }
 
         if (historicRenVMBlocks) {
+            console.log(`Loading historic RenVM blocks...`);
             const blockArray = await historicRenVMBlocks.blocks();
             const blockList = List(blockArray);
 
             await loadHistoricRenVMBlocks(network, blockList, [
                 blockHandler.blockHandler,
             ]);
+            console.log(`Done loading historic RenVM blocks.`);
         }
     }
 
