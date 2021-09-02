@@ -87,14 +87,16 @@ export class BlockWatcher {
         fromBlock: number | undefined,
         n: number
     ): Promise<CommonBlock[]> => {
-        const blocks: ResponseQueryBlocks["blocks"] = (
+        const blocks: RenVMBlock[] = (
             await client.queryBlocks(
                 String(fromBlock) as any as number,
                 String(n) as any as number
             )
         ).blocks;
 
-        return await Promise.all(blocks.map(fetchBlockTransactions));
+        return await Promise.all(
+            blocks.map((block) => fetchBlockTransactions(client, block))
+        );
     };
 
     getBlockState = async (client: RenVMProvider): Promise<BlockState> => {

@@ -17,9 +17,11 @@ export const runTracker = async (
 ) => {
     const blockHandler = new BlockHandler(network, connection);
 
+    const renVM = await RenVMProgress.findOneOrFail();
+
     // Checks if it needs to load the historic events into the database.
     if (initialize) {
-        const { historicChainEvents, historicRenVMBlocks } =
+        const { historicChainEvents, historicRenVMBlocks, liveRenVM } =
             networkConfigs[network];
 
         console.log("historicChainEvents", historicChainEvents);
@@ -47,12 +49,15 @@ export const runTracker = async (
                     blockHandler.blockHandler,
                 ]);
             }
+
+            renVM.migrationCount = renVM.migrationCount + 1;
+            renVM.syncedBlock = liveRenVM.fromBlock - 1;
+
             console.log(`Done loading historic RenVM blocks.`);
         }
     }
 
     // Mark initialization as being done.
-    const renVM = await RenVMProgress.findOneOrFail();
     renVM.initialized = true;
     await renVM.save();
 
