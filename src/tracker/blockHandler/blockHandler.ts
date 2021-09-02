@@ -245,24 +245,24 @@ export class BlockHandler {
                 }
             }
 
-            // Fees
-            if (assetState.fees) {
-                // Sum up epoch fees.
-                const epochSum = assetState.fees.epochs.reduce(
-                    (sum, epoch) => sum.plus(epoch.amount),
-                    new BigNumber(0)
-                );
+            // // Fees
+            // if (assetState.fees) {
+            //     // Sum up epoch fees.
+            //     const epochSum = assetState.fees.epochs.reduce(
+            //         (sum, epoch) => sum.plus(epoch.amount),
+            //         new BigNumber(0)
+            //     );
 
-                const feesTotal = epochSum.plus(assetState.fees.unassigned);
+            //     const feesTotal = epochSum.plus(assetState.fees.unassigned);
 
-                const feesTotalWithPrice = applyPrice(
-                    asset,
-                    feesTotal.toFixed(),
-                    assetPrice
-                );
+            //     const feesTotalWithPrice = applyPrice(
+            //         asset,
+            //         feesTotal.toFixed(),
+            //         assetPrice
+            //     );
 
-                snapshot = await setFees(snapshot, feesTotalWithPrice);
-            }
+            //     snapshot = await setFees(snapshot, feesTotalWithPrice);
+            // }
         }
 
         return snapshot;
