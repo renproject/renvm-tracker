@@ -165,8 +165,6 @@ export class Snapshot extends BaseEntity {
     }
 }
 
-const MAX_TIMESTAMP = new BigNumber(2).exponentiatedBy(64).minus(1).toNumber();
-
 /**
  * Look up the snapshot for the provided timestamp. If
  */
@@ -176,9 +174,6 @@ export const getSnapshot = async (timestampMoment: Moment) => {
     // This check requires a database access, so it can be removed if it's
     // shown to never happen.
     const latestSnapshot = await Snapshot.findOne({
-        where: {
-            timestamp: LessThan(MAX_TIMESTAMP),
-        },
         order: {
             timestamp: "DESC",
         },
