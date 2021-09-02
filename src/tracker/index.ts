@@ -46,6 +46,7 @@ export const runTracker = async (
                 await loadHistoricRenVMBlocks(network, blockList, [
                     blockHandler.blockHandler,
                 ]);
+            }
             console.log(`Done loading historic RenVM blocks.`);
         }
     }
