@@ -56,6 +56,14 @@ export const networkConfigs: { [network in RenNetwork]: NetworkConfig } = {
                     await jsonFromZipPath<RenVMBlock[]>(
                         "src/tracker/historic/events/mainnet-renvm-2.zip"
                     ),
+                    async () =>
+                    await jsonFromZipPath<RenVMBlock[]>(
+                        "src/tracker/historic/events/mainnet-renvm-3.zip"
+                    ),
+                    async () =>
+                    await jsonFromZipPath<RenVMBlock[]>(
+                        "src/tracker/historic/events/mainnet-renvm-4.zip"
+                    ),
             ],
             fromTimestamp: 1624884114,
             toTimestamp: 1629802268,
