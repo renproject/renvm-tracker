@@ -12,11 +12,6 @@ import {
 } from "../blockHandler/snapshotUtils";
 import { HistoricEvent } from "./types";
 
-export const INPUT_FILES = {
-    [RenNetwork.Mainnet]: "src/tracker/historic/events/mainnet-chains.json",
-    [RenNetwork.Testnet]: "src/tracker/historic/events/testnet-chains.json",
-};
-
 export const loadHistoricEVMEvents = async (events: List<HistoricEvent>) => {
     let snapshot: Snapshot | undefined;
 

@@ -13,7 +13,7 @@ export interface NetworkConfig {
         toTimestamp: number;
     };
     historicRenVMBlocks?: {
-        blocks: () => Promise<RenVMBlock[]>;
+        blocks: [() => Promise<RenVMBlock[]>];
         fromTimestamp: number;
         toTimestamp: number;
     };
@@ -47,10 +47,13 @@ export const networkConfigs: { [network in RenNetwork]: NetworkConfig } = {
             toTimestamp: 1624884114 - 2 * HOUR,
         },
         historicRenVMBlocks: {
-            blocks: async () =>
+            blocks: [async () =>
                 await jsonFromZipPath<RenVMBlock[]>(
-                    "src/tracker/historic/events/mainnet-renvm.zip"
-                ),
+                    "src/tracker/historic/events/mainnet-renvm-1.zip"
+                ) async () =>
+                await jsonFromZipPath<RenVMBlock[]>(
+                    "src/tracker/historic/events/mainnet-renvm-2.zip"
+                )],
             fromTimestamp: 1624884114,
             toTimestamp: 1629802268,
         },

@@ -6,11 +6,6 @@ import { fetchBlockTransactions } from "../blockWatcher/blockWatcher";
 import { RenVMProvider } from "@renproject/rpc/build/main/v2";
 import { SECONDS, sleep } from "../../common/utils";
 
-export const INPUT_FILES = {
-    [RenNetwork.Mainnet]: "src/tracker/historic/events/mainnet-chains.json",
-    [RenNetwork.Testnet]: "src/tracker/historic/events/testnet-chains.json",
-};
-
 export const loadHistoricRenVMBlocks = async (
     network: RenNetwork,
     blocks: List<RenVMBlock>,
