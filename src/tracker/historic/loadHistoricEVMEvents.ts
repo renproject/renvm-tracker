@@ -11,9 +11,19 @@ import {
     updateAssetPrice,
 } from "../blockHandler/snapshotUtils";
 import { HistoricEvent } from "./types";
+import { networkConfigs } from "./config";
 
-export const loadHistoricEVMEvents = async (events: List<HistoricEvent>) => {
+export const loadHistoricEVMEvents = async (
+    network: RenNetwork,
+    events: List<HistoricEvent>
+) => {
     let snapshot: Snapshot | undefined;
+
+    const networkConfig = networkConfigs[network];
+
+    if (!networkConfig.historicChainEvents) {
+        return;
+    }
 
     for (let i = 0; i < events.size; i++) {
         console.log(
@@ -25,6 +35,13 @@ export const loadHistoricEVMEvents = async (events: List<HistoricEvent>) => {
         const event = events.get(i);
 
         if (!event) {
+            continue;
+        }
+
+        if (
+            event.timestamp < networkConfig.historicChainEvents.fromTimestamp ||
+            event.timestamp > networkConfig.historicChainEvents.toTimestamp
+        ) {
             continue;
         }
 

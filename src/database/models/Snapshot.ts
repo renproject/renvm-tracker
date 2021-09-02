@@ -170,6 +170,22 @@ export class Snapshot extends BaseEntity {
 export const getSnapshot = async (timestampMoment: Moment) => {
     const timestamp = getTimestamp(timestampMoment);
 
+    // This check requires a database access, so it can be removed if it's
+    // shown to never happen.
+    const latestSnapshot = await Snapshot.findOne({
+        where: {
+            timestamp: LessThan(Infinity),
+        },
+        order: {
+            timestamp: "DESC",
+        },
+    });
+    if (latestSnapshot && latestSnapshot.timestamp > timestamp) {
+        throw new Error(
+            `Error: attempting to load Snapshot earlier than latest Snapshot.`
+        );
+    }
+
     let snapshot = await Snapshot.findOne({
         timestamp: timestamp,
     });

@@ -5,6 +5,7 @@ import { BlockHandlerInterface, RenVMBlock } from "../blockWatcher/events";
 import { fetchBlockTransactions } from "../blockWatcher/blockWatcher";
 import { RenVMProvider } from "@renproject/rpc/build/main/v2";
 import { SECONDS, sleep } from "../../common/utils";
+import { networkConfigs } from "./config";
 
 export const loadHistoricRenVMBlocks = async (
     network: RenNetwork,
@@ -12,6 +13,12 @@ export const loadHistoricRenVMBlocks = async (
     blockHandlers: BlockHandlerInterface[]
 ) => {
     const client = new RenVMProvider(network);
+
+    const networkConfig = networkConfigs[network];
+
+    if (!networkConfig.historicRenVMBlocks) {
+        return;
+    }
 
     const renvmState = await RenVMProgress.findOneOrFail();
 
@@ -28,6 +35,15 @@ export const loadHistoricRenVMBlocks = async (
                     client,
                     blocks.get(i)!
                 );
+
+                if (
+                    block.timestamp.unix() <
+                        networkConfig.historicRenVMBlocks.fromTimestamp ||
+                    block.timestamp.unix() >
+                        networkConfig.historicRenVMBlocks.toTimestamp
+                ) {
+                    continue;
+                }
 
                 for (const blockSubscription of blockHandlers) {
                     await blockSubscription(renvmState, block, undefined);
