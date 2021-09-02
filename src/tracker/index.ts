@@ -26,7 +26,7 @@ export const runTracker = async (
         console.log("historicRenVMBlocks", historicRenVMBlocks);
 
         if (historicChainEvents) {
-            console.log(`Loading historic RenVM blocks...`);
+            console.log(`Loading historic EVM events...`);
             const eventArray = await historicChainEvents.events();
             const eventList = List(eventArray).sortBy(
                 (event) => event.timestamp
@@ -34,7 +34,7 @@ export const runTracker = async (
 
             await loadHistoricEVMEvents(network, eventList);
 
-            console.log(`Done loading historic EVM blocks.`);
+            console.log(`Done loading historic EVM events.`);
         }
 
         if (historicRenVMBlocks) {

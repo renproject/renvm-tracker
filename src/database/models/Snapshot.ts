@@ -11,6 +11,7 @@ import { Moment } from "moment";
 import moment from "moment";
 
 import { JSONTransformer } from "./common";
+import BigNumber from "bignumber.js";
 
 export const TIME_BLOCK_LENGTH = 300; // 5 minutes
 
@@ -164,6 +165,8 @@ export class Snapshot extends BaseEntity {
     }
 }
 
+const MAX_TIMESTAMP = new BigNumber(2).exponentiatedBy(64).minus(1).toNumber();
+
 /**
  * Look up the snapshot for the provided timestamp. If
  */
@@ -174,7 +177,7 @@ export const getSnapshot = async (timestampMoment: Moment) => {
     // shown to never happen.
     const latestSnapshot = await Snapshot.findOne({
         where: {
-            timestamp: LessThan(Infinity),
+            timestamp: LessThan(MAX_TIMESTAMP),
         },
         order: {
             timestamp: "DESC",
