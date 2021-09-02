@@ -32,7 +32,7 @@ export const runTracker = async (
                 (event) => event.timestamp
             );
 
-            await loadHistoricEVMEvents(eventList);
+            await loadHistoricEVMEvents(network, eventList);
 
             console.log(`Done loading historic EVM blocks.`);
         }
