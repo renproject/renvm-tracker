@@ -4,13 +4,18 @@ import { typeOrmConfig } from "./connection";
 import { RenVMProgress } from "./models";
 import { RenNetwork } from "../networks";
 import { networkConfigs } from "../tracker/historic/config";
+import { SECONDS, sleep } from "../common/utils";
 
 export const initializeDatabase = async (
     network: RenNetwork.Mainnet | RenNetwork.Testnet
 ) => {
+    console.log(`Initializing database...`);
+
     const renVM = new RenVMProgress();
     renVM.syncedBlock = networkConfigs[network].liveRenVM.fromBlock;
     await renVM.save();
+
+    await sleep(1 * SECONDS);
 };
 
 export const runDatabase = async (
@@ -30,10 +35,23 @@ export const runDatabase = async (
 
     let initialize = false;
     try {
-        await initializeDatabase(NETWORK);
-        initialize = true;
+        const renVM = await RenVMProgress.findOneOrFail();
+        if (!renVM.initialized) {
+            // Initialization failed. Reset database and start again.
+            console.log("Previous session's initialization process failed.");
+            await resetDatabase(connection);
+            await connection.showMigrations();
+            await connection.runMigrations();
+            await connection.synchronize();
+            initialize = true;
+        }
     } catch (error) {
         console.error(error);
+        initialize = true;
+    }
+
+    if (initialize) {
+        await initializeDatabase(NETWORK);
     }
 
     console.info("Connected.");
@@ -41,12 +59,11 @@ export const runDatabase = async (
     return { connection, initialize };
 };
 
-export const resetDatabase = async () => {
+export const resetDatabase = async (connection?: Connection) => {
     console.info(`Resetting database...`);
 
-    let connection: Connection;
     try {
-        connection = await createConnection(typeOrmConfig);
+        connection = connection || (await createConnection(typeOrmConfig));
     } catch (error) {
         if (/AlreadyHasActiveConnectionError/.exec(error.message)) {
             // Use existing connection.

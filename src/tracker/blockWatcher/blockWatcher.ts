@@ -215,8 +215,10 @@ export const fetchBlockTransactions = async (
     timestamp: moment(parseInt(block.timestamp) * 1000),
     transactions: await Promise.all(
         block.extrinsicTxs.map(
-            async (txHash: string): Promise<ResponseQueryTx> =>
-                await client.queryTx(txHash)
+            async (txHash: string): Promise<ResponseQueryTx> => {
+                console.log(`Fetching transaction ${txHash}`);
+                return await client.queryTx(txHash);
+            }
         )
     ),
 });

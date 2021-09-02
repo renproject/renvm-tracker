@@ -1,11 +1,5 @@
 import { Field, ID, Int, ObjectType } from "type-graphql";
-import {
-    BaseEntity,
-    Column,
-    Entity,
-    PrimaryGeneratedColumn,
-    Unique,
-} from "typeorm";
+import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 @ObjectType()
@@ -21,6 +15,10 @@ export class RenVMProgress extends BaseEntity {
     @Field(() => Int)
     @Column()
     migrationCount: number = 0;
+
+    @Field(() => Boolean)
+    @Column()
+    initialized: boolean = false;
 
     constructor() {
         super();

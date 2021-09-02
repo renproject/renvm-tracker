@@ -1,5 +1,3 @@
-import { readFile } from "fs";
-import { promisify } from "util";
 import { List } from "immutable";
 import { Connection } from "typeorm";
 
@@ -8,11 +6,9 @@ import { BlockHandler } from "./blockHandler/blockHandler";
 import { loadHistoricEVMEvents } from "./historic/loadHistoricEVMEvents";
 import { BlockWatcher } from "./blockWatcher/blockWatcher";
 import { RenNetwork } from "../networks";
-import { HistoricEvent } from "./historic/types";
 import { networkConfigs } from "./historic/config";
 import { loadHistoricRenVMBlocks } from "./historic/loadHistoricRenVMBlocks";
-
-const readFileAsync = promisify(readFile);
+import { RenVMProgress } from "../database/models";
 
 export const runTracker = async (
     network: RenNetwork.Mainnet | RenNetwork.Testnet,
@@ -29,17 +25,17 @@ export const runTracker = async (
         console.log("historicChainEvents", historicChainEvents);
         console.log("historicRenVMBlocks", historicRenVMBlocks);
 
-        if (historicChainEvents) {
-            console.log(`Loading historic RenVM blocks...`);
-            const eventArray = await historicChainEvents.events();
-            const eventList = List(eventArray).sortBy(
-                (event) => event.timestamp
-            );
+        // if (historicChainEvents) {
+        //     console.log(`Loading historic RenVM blocks...`);
+        //     const eventArray = await historicChainEvents.events();
+        //     const eventList = List(eventArray).sortBy(
+        //         (event) => event.timestamp
+        //     );
 
-            await loadHistoricEVMEvents(eventList);
+        //     await loadHistoricEVMEvents(eventList);
 
-            console.log(`Done loading historic EVM blocks.`);
-        }
+        //     console.log(`Done loading historic EVM blocks.`);
+        // }
 
         if (historicRenVMBlocks) {
             console.log(`Loading historic RenVM blocks...`);
@@ -52,6 +48,11 @@ export const runTracker = async (
             console.log(`Done loading historic RenVM blocks.`);
         }
     }
+
+    // Mark initialization as being done.
+    const renVM = await RenVMProgress.findOneOrFail();
+    renVM.initialized = true;
+    await renVM.save();
 
     // Start the block watcher and subscribe the block handler to block events.
     const blockWatcher = new BlockWatcher(network, connection);
