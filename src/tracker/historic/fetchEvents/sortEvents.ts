@@ -15,7 +15,7 @@ const INPUT_FILES = [
             event.chain !== "Fantom",
     },
 ];
-const OUTPUT_FILE = "src/tracker/historic/events/mainnet-chains-new.json";
+const OUTPUT_FILE = "src/tracker/historic/events/mainnet-chains.json";
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);

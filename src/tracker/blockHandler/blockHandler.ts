@@ -177,7 +177,7 @@ export class BlockHandler {
 
             snapshot = await addVolume(snapshot, amountWithPrice, assetPrice);
             snapshot = await addLocked(snapshot, amountWithPrice, assetPrice);
-            snapshot = await addFees(snapshot, amountWithPrice, assetPrice);
+            snapshot = await addFees(snapshot, feeAmountWithPrice, assetPrice);
 
             const color = mintOrBurn === MintOrBurn.MINT ? green : red;
             let amountString = new BigNumber(amountWithPrice.amount)
