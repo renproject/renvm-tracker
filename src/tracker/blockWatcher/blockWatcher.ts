@@ -94,9 +94,20 @@ export class BlockWatcher {
             )
         ).blocks;
 
-        return await Promise.all(
-            blocks.map((block) => fetchBlockTransactions(client, block))
-        );
+        let randomDelayRange = 0;
+        while (true) {
+            try {
+                return await Promise.all(
+                    blocks.map((block) =>
+                        fetchBlockTransactions(client, block, randomDelayRange)
+                    )
+                );
+            } catch (error) {
+                console.error(`Failed to fetch transactions.`);
+                console.error(error);
+                randomDelayRange += 10 * SECONDS;
+            }
+        }
     };
 
     getBlockState = async (client: RenVMProvider): Promise<BlockState> => {
@@ -211,7 +222,8 @@ export class BlockWatcher {
  */
 export const fetchBlockTransactions = async (
     client: RenVMProvider,
-    block: RenVMBlock
+    block: RenVMBlock,
+    randomDelayRange?: number
 ): Promise<CommonBlock> => ({
     height: parseInt(block.height),
     timestamp: moment(parseInt(block.timestamp) * 1000),
@@ -219,6 +231,9 @@ export const fetchBlockTransactions = async (
         block.extrinsicTxs.map(
             async (txHash: string): Promise<ResponseQueryTx> => {
                 console.log(`Fetching transaction ${txHash}`);
+                if (randomDelayRange) {
+                    await sleep(Math.random() * randomDelayRange);
+                }
                 return await client.queryTx(txHash);
             }
         )
