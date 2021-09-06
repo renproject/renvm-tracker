@@ -18,7 +18,7 @@ export class Resolvers {
             if (!timestamp || timestamp === "latest" || timestamp === "") {
                 timestamp = Math.floor(Date.now() / 1000).toString();
             }
-            return await Snapshot.findOneOrFail({
+            const snapshot = await Snapshot.findOneOrFail({
                 where: {
                     timestamp: LessThanOrEqual(timestamp),
                 },
@@ -26,6 +26,8 @@ export class Resolvers {
                     timestamp: "DESC",
                 },
             });
+            snapshot.id = 0;
+            return snapshot;
         } catch (error) {
             throw new Error(
                 `Snapshot less than or equal to ${where.timestamp} not found.`
