@@ -26,7 +26,8 @@ export class Resolvers {
                     timestamp: "DESC",
                 },
             });
-            snapshot.id = 0;
+            // Add temporary id for backwards compatibility.
+            snapshot.id = snapshot._id || 0;
             return snapshot;
         } catch (error) {
             throw new Error(
