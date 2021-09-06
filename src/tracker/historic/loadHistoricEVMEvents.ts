@@ -78,7 +78,7 @@ export const loadHistoricEVMEvents = async (
             event.chain === "Ethereum"
                 ? "0xe33417797d6b8aec9171d0d6516e88002fbe23e7"
                 : "0xfe45ab17919759cfa2ce35215ead5ca4d1fc73c7";
-        if (event.to.toLowerCase() === feeRecipient) {
+        if (event.to && event.to.toLowerCase() === feeRecipient) {
             snapshot = addFees(snapshot, assetAmount, assetPrice);
         }
     }
