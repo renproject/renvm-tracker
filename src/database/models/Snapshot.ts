@@ -125,6 +125,9 @@ export class Snapshot extends BaseEntity {
     _id: number | null = null;
 
     @Field(() => Number)
+    id?: number;
+
+    @Field(() => Number)
     @Column()
     timestamp: number;
 
