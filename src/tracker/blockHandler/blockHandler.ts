@@ -1,14 +1,24 @@
-import { TxStatus } from "@renproject/interfaces";
-import {
-    unmarshalMintTx,
-    unmarshalBurnTx,
-} from "@renproject/rpc/build/main/v2";
-import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
 import BigNumber from "bignumber.js";
 import { blue, blueBright, cyan, green, magenta, red, yellow } from "chalk";
-import { RenVMProgress } from "../../database/models";
 import { Connection } from "typeorm";
-import { Snapshot, getSnapshot } from "../../database/models/Snapshot";
+
+import { TxStatus } from "@renproject/interfaces";
+import {
+    unmarshalBurnTx,
+    unmarshalMintTx,
+} from "@renproject/rpc/build/main/v2";
+import { ResponseQueryTx } from "@renproject/rpc/build/main/v2/methods";
+
+import { DEBUG } from "../../common/environmentVariables";
+import { RenVMProgress } from "../../database/models";
+import { getSnapshot, Snapshot } from "../../database/models/Snapshot";
+import { RenNetwork } from "../../networks";
+import {
+    BlockHandlerInterface,
+    BlockState,
+    CommonBlock,
+} from "../blockWatcher/events";
+import { applyPrice, applyPriceWithChain } from "../priceFetcher/PriceFetcher";
 import {
     addFees,
     addLocked,
@@ -22,14 +32,6 @@ import {
     setLocked,
     updateAssetPrice,
 } from "./snapshotUtils";
-import { DEBUG } from "../../common/environmentVariables";
-import {
-    BlockHandlerInterface,
-    BlockState,
-    CommonBlock,
-} from "../blockWatcher/events";
-import { applyPrice, applyPriceWithChain } from "../priceFetcher/PriceFetcher";
-import { RenNetwork } from "../../networks";
 
 const HARDCODED_RENVM_FEE = 15 / 10000;
 
@@ -98,6 +100,15 @@ export class BlockHandler {
                 tx: transaction as any,
                 txStatus: TxStatus.TxStatusDone,
             });
+
+            // Skip mints that have an empty gPubKey.
+            if (
+                transaction.in.v.gpubkey === "" &&
+                (!transaction.out ||
+                    Object.keys(transaction.out.v).length === 0)
+            ) {
+                return snapshot;
+            }
 
             if (
                 tx.out &&
@@ -277,18 +288,6 @@ export class BlockHandler {
             // Update snapshot for each transaction.
             let snapshot = await getSnapshot(block.timestamp);
             for (let transaction of block.transactions) {
-                // Temporary fix. Can remove in the next commit.
-                // These two transactions were rejected by RenVM without having
-                // a revert reason assigned to them (due to a bug that's being
-                // fixed).
-                if (
-                    transaction.tx.hash ===
-                        "WUrN_0-gb1XvPl46EF_vw_uX00M7DI6yIglicOe2gRE" ||
-                    transaction.tx.hash ===
-                        "7Ha2PseILeitvRLPjhiWDYlf88SugIzPh2odSL2ehc4"
-                ) {
-                    continue;
-                }
                 snapshot = await this.transactionHandler(
                     snapshot,
                     block,
