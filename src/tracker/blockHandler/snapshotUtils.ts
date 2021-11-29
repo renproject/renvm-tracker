@@ -1,21 +1,20 @@
-import { OrderedMap } from "immutable";
 import BigNumber from "bignumber.js";
+import { OrderedMap } from "immutable";
 import moment from "moment";
 
-import {
-    applyPrice,
-    applyPriceWithChain,
-    assertPriceIsValid,
-    fetchAssetPrice,
-} from "../priceFetcher/PriceFetcher";
 import { extractError, SECONDS, sleep } from "../../common/utils";
-
 import {
     AssetAmount,
     AssetAmountWithChain,
     AssetPrice,
 } from "../../database/models/Snapshot";
 import { RenNetwork } from "../../networks";
+import {
+    applyPrice,
+    applyPriceWithChain,
+    assertPriceIsValid,
+    fetchAssetPrice,
+} from "../priceFetcher/PriceFetcher";
 
 export interface ISnapshot {
     _id: number | null;

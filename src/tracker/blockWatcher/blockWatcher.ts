@@ -3,22 +3,22 @@ import moment, { Moment } from "moment";
 import { Connection } from "typeorm";
 
 import {
-    ResponseQueryBlocks,
-    unmarshalPackValue,
     ResponseQueryBlock,
+    ResponseQueryBlocks,
     ResponseQueryTx,
+    unmarshalPackValue,
 } from "@renproject/rpc/build/main/v2";
 import { RenVMProvider } from "@renproject/rpc/build/main/v2/renVMProvider";
 
+import { SECONDS, sleep } from "../../common/utils";
 import { RenVMProgress } from "../../database/models";
 import { RenNetwork } from "../../networks";
 import {
+    BlockHandlerInterface,
     BlockState,
     CommonBlock,
-    BlockHandlerInterface,
     RenVMBlock,
 } from "./events";
-import { SECONDS, sleep } from "../../common/utils";
 
 export class BlockWatcher {
     batchSize = 16;

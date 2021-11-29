@@ -1,15 +1,15 @@
 import Axios from "axios";
 import BigNumber from "bignumber.js";
+import { magenta, yellow } from "chalk";
 import { Map, OrderedMap } from "immutable";
 import moment, { Moment } from "moment";
+
+import { DEFAULT_REQUEST_TIMEOUT, SECONDS, time } from "../../common/utils";
 import {
     AssetAmount,
     AssetAmountWithChain,
     AssetPrice,
 } from "../../database/models/Snapshot";
-
-import { DEFAULT_REQUEST_TIMEOUT, SECONDS, time } from "../../common/utils";
-import { magenta, yellow } from "chalk";
 import { RenNetwork } from "../../networks";
 
 export const applyPriceWithChain = (
@@ -69,20 +69,7 @@ export type AssetPrices = OrderedMap<string, AssetPrice>;
 export const assetIDs: {
     [asset: string]: { decimals: number; coinGeckoID: string };
 } = {
-    // Misc.
-    ["ETH"]: {
-        decimals: 18,
-        coinGeckoID: "ethereum",
-    },
-    ["REN"]: {
-        decimals: 18,
-        coinGeckoID: "republic-protocol",
-    },
-    ["DAI"]: {
-        decimals: 18,
-        coinGeckoID: "dai",
-    },
-    // RenVM assets
+    // Lock assets
     ["BTC"]: {
         decimals: 8,
         coinGeckoID: "bitcoin",
@@ -110,6 +97,100 @@ export const assetIDs: {
     ["LUNA"]: {
         coinGeckoID: "terra-luna",
         decimals: 6,
+    },
+
+    // Ethereum assets
+    ["ETH"]: {
+        decimals: 18,
+        coinGeckoID: "ethereum",
+    },
+    ["REN"]: {
+        decimals: 18,
+        coinGeckoID: "republic-protocol",
+    },
+    ["DAI"]: {
+        decimals: 18,
+        coinGeckoID: "dai",
+    },
+    ["USDC"]: {
+        decimals: 6,
+        coinGeckoID: "usd-coin",
+    },
+    ["USDT"]: {
+        decimals: 6,
+        coinGeckoID: "tether",
+    },
+    ["EURT"]: {
+        decimals: 6,
+        coinGeckoID: "euro-tether",
+    },
+    ["BUSD"]: {
+        decimals: 18,
+        coinGeckoID: "binance-usd",
+    },
+    ["MIM"]: {
+        decimals: 18,
+        coinGeckoID: "magic-internet-money",
+    },
+    ["CRV"]: {
+        decimals: 18,
+        coinGeckoID: "curve-dao-token",
+    },
+    ["LINK"]: {
+        decimals: 18,
+        coinGeckoID: "chainlink",
+    },
+    ["UNI"]: {
+        decimals: 18,
+        coinGeckoID: "uniswap",
+    },
+    ["SUSHI"]: {
+        decimals: 18,
+        coinGeckoID: "sushi",
+    },
+    ["FTT"]: {
+        decimals: 18,
+        coinGeckoID: "ftx-token",
+    },
+    ["ROOK"]: {
+        decimals: 18,
+        coinGeckoID: "keeperdao",
+    },
+    ["BADGER"]: {
+        decimals: 18,
+        coinGeckoID: "badger-dao",
+    },
+    ["KNC"]: {
+        decimals: 18,
+        coinGeckoID: "kyber-network-crystal",
+    },
+
+    // Other chains
+    ["ArbETH"]: {
+        decimals: 18,
+        // There's no separate price feed for ArbETH.
+        coinGeckoID: "ethereum",
+    },
+    ["BNB"]: {
+        decimals: 18,
+        coinGeckoID: "binance-coin",
+    },
+    ["MATIC"]: {
+        decimals: 18,
+        coinGeckoID: "polygon",
+    },
+    ["FTM"]: {
+        decimals: 18,
+        coinGeckoID: "fantom",
+    },
+    ["AVAX"]: {
+        decimals: 18,
+        coinGeckoID: "avalanche",
+    },
+    ["gETH"]: {
+        decimals: 18,
+        // Goerli ETH
+        coinGeckoID: "ethereum",
     },
 };
 
