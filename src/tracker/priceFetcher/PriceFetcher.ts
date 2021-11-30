@@ -122,7 +122,7 @@ export const assetIDs: {
     },
     ["EURT"]: {
         decimals: 6,
-        coinGeckoID: "euro-tether",
+        coinGeckoID: "tether-eurt",
     },
     ["BUSD"]: {
         decimals: 18,
@@ -154,7 +154,7 @@ export const assetIDs: {
     },
     ["ROOK"]: {
         decimals: 18,
-        coinGeckoID: "keeperdao",
+        coinGeckoID: "rook",
     },
     ["BADGER"]: {
         decimals: 18,
@@ -177,7 +177,7 @@ export const assetIDs: {
     },
     ["MATIC"]: {
         decimals: 18,
-        coinGeckoID: "polygon",
+        coinGeckoID: "matic-network",
     },
     ["FTM"]: {
         decimals: 18,
