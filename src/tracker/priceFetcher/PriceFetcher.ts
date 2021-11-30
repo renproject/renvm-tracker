@@ -173,7 +173,7 @@ export const assetIDs: {
     },
     ["BNB"]: {
         decimals: 18,
-        coinGeckoID: "binance-coin",
+        coinGeckoID: "binancecoin",
     },
     ["MATIC"]: {
         decimals: 18,
@@ -185,7 +185,7 @@ export const assetIDs: {
     },
     ["AVAX"]: {
         decimals: 18,
-        coinGeckoID: "avalanche",
+        coinGeckoID: "avalanche-2",
     },
     ["gETH"]: {
         decimals: 18,
