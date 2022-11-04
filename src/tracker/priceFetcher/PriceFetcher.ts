@@ -192,6 +192,14 @@ export const assetIDs: {
         // Goerli ETH
         coinGeckoID: "ethereum",
     },
+    ["KAVA"]: {
+        decimals: 18,
+        coinGeckoID: "kava",
+    },
+    ["GLMR"]: {
+        decimals: 18,
+        coinGeckoID: "moonbeam",
+    },
 };
 
 const CACHE_EXPIRY = 10 * SECONDS;
